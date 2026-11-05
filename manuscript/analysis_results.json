@@ -1,0 +1,391 @@
+{
+  "metadata": {
+    "manuscript_id": "CerCor-2022-00354",
+    "journal": "Cerebral Cortex",
+    "title": "Connecting Covert Attention and Visual Perception to the Spatiotemporal Dynamics of Alpha Band Activity, Cross-Frequency Coupling (CFC), and Functional Connectivity using Multivariate Pattern Analysis (MVPA)",
+    "short_title": "CONNECT ATTENTION AND PERCEPTION TO SPATIOTEMPORAL DYNAMICS",
+    "osf_url": "https://osf.io/u6fgm/",
+    "task_repo_url": "https://github.com/APPLabUofA/CuedOrientTask_paper",
+    "mvpa_repo_url": "https://github.com/APPLabUofA/MVPA_CuedOrientTask_paper",
+    "pipeline_repo_url": "https://github.com/APPLabUofA/OrientExoML",
+    "pipeline_version": "2.0.0",
+    "strict_mode_ready": true
+  },
+  "provenance": {
+    "participants": {
+      "status": "computed_from_raw_data",
+      "source_script": "CuedOrientTask_paper/Analysis_Code/perm_rbANOVA_OrientExo.m",
+      "updated_at": "2026-11-05T20:39:21.072975+00:00"
+    },
+    "behavior": {
+      "status": "computed_from_raw_data",
+      "source_script": "CuedOrientTask_paper/Analysis_Code/perm_rbANOVA_OrientExo.m",
+      "updated_at": "2026-11-05T20:39:21.072975+00:00"
+    },
+    "fooof": {
+      "status": "computed_from_raw_data",
+      "source_script": "scripts/run_mvpa_and_figures.py",
+      "updated_at": "2026-11-05T22:54:26.292984+00:00"
+    },
+    "mvpa": {
+      "status": "computed_from_raw_data",
+      "source_script": "scripts/run_mvpa_and_figures.py",
+      "updated_at": "2026-11-05T22:54:28.950184+00:00"
+    },
+    "mvpa_summary_metrics": {
+      "status": "computed_from_raw_data",
+      "source_script": "scripts/run_mvpa_and_figures.py",
+      "updated_at": "2026-11-05T22:54:28.950184+00:00"
+    }
+  },
+  "participants": {
+    "n_recruited": 35,
+    "n_excluded_eog": 7,
+    "n_included": 28,
+    "age_min": 17,
+    "age_max": 34,
+    "eog_rejection_threshold_pct": 30,
+    "heog_step_threshold_uv": 25,
+    "compensation_rate_cad": 10
+  },
+  "task": {
+    "viewing_distance_cm": 57,
+    "refresh_rate_hz": 120,
+    "target_duration_ms": 8.33,
+    "mask_duration_ms": 8.33,
+    "target_mask_soa_ms": 41.7,
+    "post_mask_blank_ms": 516.6,
+    "fixation_duration_ms": 700,
+    "cue_durations_ms": "1242, 1284, 1325, or 1367",
+    "n_orientations": 24,
+    "n_blocks": 8,
+    "trials_per_block": 48,
+    "practice_trials": 20,
+    "total_trials": 404,
+    "staircase_target_detection_rate": 0.65,
+    "staircase_blocks": 3,
+    "staircase_gray_mean": 54.0,
+    "staircase_gray_sd": 22.0
+  },
+  "behavior": {
+    "df1": 1,
+    "df2": 27,
+    "right_side_floor_deg": 28,
+    "response_error": {
+      "target_side": {
+        "fmax": 2.04,
+        "crit_fmax": 4.09,
+        "p": "0.169"
+      },
+      "cue_type": {
+        "fmax_str": "< 1",
+        "p": "ns"
+      },
+      "interaction": {
+        "fmax": 1.94,
+        "crit_fmax": 4.14,
+        "p": "0.176"
+      }
+    },
+    "absolute_response_error": {
+      "target_side": {
+        "fmax": 11.32,
+        "crit_fmax": 3.95,
+        "p": "0.001"
+      },
+      "cue_type": {
+        "fmax": 12.3,
+        "crit_fmax": 3.96,
+        "p": "< 0.001"
+      },
+      "interaction": {
+        "fmax": 9.31,
+        "crit_fmax": 3.85,
+        "p": "0.002"
+      }
+    }
+  },
+  "fooof": {
+    "freq_range_hz": "3.9 to 48.8",
+    "freq_res_hz": 1.9,
+    "peak_width_limits_hz": "[1, 5]",
+    "max_n_peaks": 7,
+    "min_peak_height": 0.22,
+    "peak_threshold": 0.2,
+    "alpha_bonferroni": 0.0125,
+    "offset_mean_crit_fmax": 15.4,
+    "exponent_mean_crit_fmax": 15.35,
+    "r2_mean_crit_fmax": 14.94,
+    "error_mean_crit_fmax": 16.76,
+    "iaf_grand_mean_hz": "10.6",
+    "iaf_grand_sd_hz": "0.5",
+    "iaf_range_hz": "9.6--11.4",
+    "aperiodic_offset": {
+      "cue_validity_fmax_crit": 15.69,
+      "target_side_fmax_crit": 15.46,
+      "interaction_fmax_crit": 15.05,
+      "non_informative_mean_log_power": 1.05,
+      "non_informative_sd_log_power": 0.3,
+      "informative_mean_log_power": 1.01,
+      "informative_sd_log_power": 0.3
+    }
+  },
+  "mvpa": {
+    "n_permutations": 10000,
+    "alpha_level": 0.05,
+    "alpha_bonf_10metrics": 0.005,
+    "cv_folds": 10,
+    "cv_repeats_empirical": 10,
+    "cv_total_empirical": 100,
+    "cv_repeats_null": 20,
+    "cv_total_null": 200,
+    "svm_cost_c": 1,
+    "svr_cost_c": 0.1,
+    "alpha_window_ms": 20,
+    "alpha_step_ms": 20,
+    "alpha_n_timepoints": 50,
+    "cfc_sliding_win_ms": 250,
+    "cfc_window_ms": 15,
+    "cfc_step_ms": 15,
+    "cfc_n_timepoints": 50,
+    "fc_sliding_win_ms": 375,
+    "fc_window_ms": 50,
+    "fc_step_ms": 50,
+    "fc_n_timepoints": 12,
+    "fc_z_thresh_window": 0.45,
+    "fc_z_thresh_epoch": 0.3,
+    "svm_results": {
+      "alpha_pct_sig_range": "90\\%--96\\%",
+      "alpha_pct_sig_min": 90,
+      "alpha_left_sig_windows": "-1000 to -820 ms and -760 to -20 ms",
+      "alpha_right_sig_windows": "-1000 to -800 ms, -760 to -460 ms, -420 to -200 ms, -160 to -80 ms, and -20 ms",
+      "mvl_pct_sig_range": "8\\%--14\\%",
+      "mvl_left_sig_ms": "-875",
+      "mvl_right_sig_window_ms": "-785 to -770",
+      "mvl_right_sig_point_ms": "-380",
+      "wpli_pct_sig_range": "0\\%--8.3\\%",
+      "wpli_right_sig_ms": "-462.5"
+    },
+    "svr_results": {
+      "alpha_noninf_right_sig_ms": "-640",
+      "aac_noninf_left_sig_ms": "-200",
+      "corr_noninf_left_sig_ms": "-562.5"
+    }
+  },
+  "mvpa_summary_metrics": {
+    "labels": [
+      "Alpha Amplitude",
+      "CFC: MVL (\u00d6zkurt)",
+      "CFC: AAC",
+      "CFC: MI",
+      "CFC: PAC (GLM)",
+      "CFC: PAC (PLV)",
+      "FC: wPLI",
+      "FC: Correlation",
+      "FC: PLV",
+      "FC: iCOH"
+    ],
+    "svm_left_peak": [
+      56.3,
+      54.0,
+      51.8,
+      52.8,
+      51.7,
+      52.9,
+      51.3,
+      51.7,
+      52.7,
+      51.2
+    ],
+    "svm_left_sem": [
+      1.0,
+      0.9,
+      1.0,
+      0.9,
+      0.7,
+      0.7,
+      0.8,
+      0.9,
+      0.8,
+      0.6
+    ],
+    "svm_right_peak": [
+      55.3,
+      54.8,
+      51.7,
+      53.4,
+      52.1,
+      53.0,
+      51.8,
+      51.1,
+      50.5,
+      51.2
+    ],
+    "svm_right_sem": [
+      1.0,
+      0.8,
+      0.8,
+      0.8,
+      0.7,
+      1.0,
+      0.7,
+      0.7,
+      0.8,
+      0.7
+    ],
+    "svm_left_pct_sig": [
+      96.0,
+      8.0,
+      0.0,
+      2.0,
+      0.0,
+      2.0,
+      0.0,
+      8.3,
+      8.3,
+      0.0
+    ],
+    "svm_right_pct_sig": [
+      90.0,
+      14.0,
+      0.0,
+      4.0,
+      0.0,
+      2.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "svm_left_sig_indices": [
+      0,
+      1,
+      3,
+      5,
+      7,
+      8
+    ],
+    "svm_right_sig_indices": [
+      0,
+      1,
+      3,
+      5
+    ],
+    "svr_noninf_peak": [
+      0.088,
+      0.088,
+      0.081,
+      0.077,
+      0.16,
+      0.073,
+      0.099,
+      0.13,
+      0.061,
+      0.077
+    ],
+    "svr_noninf_sem": [
+      0.046,
+      0.037,
+      0.049,
+      0.045,
+      0.036,
+      0.034,
+      0.045,
+      0.047,
+      0.046,
+      0.028
+    ],
+    "svr_inf_peak": [
+      0.054,
+      0.072,
+      0.063,
+      0.054,
+      0.08,
+      0.055,
+      0.05,
+      0.053,
+      0.054,
+      0.038
+    ],
+    "svr_inf_sem": [
+      0.028,
+      0.03,
+      0.026,
+      0.031,
+      0.023,
+      0.025,
+      0.023,
+      0.032,
+      0.025,
+      0.027
+    ],
+    "svr_noninf_sig_indices": [],
+    "svr_inf_sig_indices": [
+      4
+    ]
+  },
+  "figures": {
+    "figure1": {
+      "id": "figure1",
+      "file": "figures/figure1_task.png",
+      "status": "generated_from_analysis",
+      "source_script": "manuscript/scripts/generate_figure1_task.py",
+      "sha256": "520d64ad1f6e955ee663aa66a97943c0451916c859775bad4bd103212a013bd6",
+      "description": "Programmatic Figure 1 generated from experimental parameters in analysis_results.json",
+      "updated_at": "2026-11-05T22:20:46.688746+00:00"
+    },
+    "figure2": {
+      "id": "figure2",
+      "file": "figures/figure2_behavior.png",
+      "status": "generated_from_analysis",
+      "source_script": "manuscript/scripts/run_behavior_pipeline.py",
+      "sha256": "9e3e48d4b46110d42d8f3ce6ee7dafb17adb3e7ec9f3a2de80fd424fb6f7b218",
+      "description": "Empirical Figure 2 generated from N=28 single-trial behavioral datasets (OSF u6fgm)",
+      "updated_at": "2026-11-05T22:20:46.713810+00:00"
+    },
+    "figure3": {
+      "id": "figure3",
+      "file": "figures/figure3_svm_cfc.png",
+      "status": "generated_from_analysis",
+      "source_script": "scripts/run_mvpa_and_figures.py",
+      "sha256": "7b785e2a50a613bcfc632c6aefa21bff874a2b947cc1c09c1fbad88b0b00d804",
+      "description": "Spatiotemporal SVM classification and feature weights for alpha amplitude and CFC measures",
+      "updated_at": "2026-11-05T22:54:27.039771+00:00"
+    },
+    "figure4": {
+      "id": "figure4",
+      "file": "figures/figure4_svm_fc.png",
+      "status": "generated_from_analysis",
+      "source_script": "scripts/run_mvpa_and_figures.py",
+      "sha256": "ffb86f7a60d97bf7f64b5d415b809c62428c54f4d4902652e344232ac1f85caa",
+      "description": "Spatiotemporal SVM classification and feature weights for functional connectivity measures",
+      "updated_at": "2026-11-05T22:54:27.400717+00:00"
+    },
+    "figure5": {
+      "id": "figure5",
+      "file": "figures/figure5_svr_cfc.png",
+      "status": "generated_from_analysis",
+      "source_script": "scripts/run_mvpa_and_figures.py",
+      "sha256": "7cb2009fffa85714bbabb4b587e8057e279e35140df5c1955f4f48f3762bbd8d",
+      "description": "Spatiotemporal SVR prediction and feature weights for alpha amplitude and CFC measures",
+      "updated_at": "2026-11-05T22:54:28.362929+00:00"
+    },
+    "figure6": {
+      "id": "figure6",
+      "file": "figures/figure6_svr_fc.png",
+      "status": "generated_from_analysis",
+      "source_script": "scripts/run_mvpa_and_figures.py",
+      "sha256": "a79b18d574f31ca93227de712df6e466959d0a08f6997e5210fdb1ce99784e6e",
+      "description": "Spatiotemporal SVR prediction and feature weights for functional connectivity measures",
+      "updated_at": "2026-11-05T22:54:28.921098+00:00"
+    },
+    "figure7": {
+      "id": "figure7",
+      "file": "figures/figure7_mvpa_summary.png",
+      "status": "generated_from_analysis",
+      "source_script": "scripts/run_mvpa_and_figures.py",
+      "sha256": "3feb0046f8a476dc624dc0558a4ec444cb625b8915bf6b5ee358d1f7febe4f9d",
+      "description": "Summary comparison of MVPA classification and SVR prediction performance across all EEG metrics (Reviewer 2 request)"
+    }
+  }
+}

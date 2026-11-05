@@ -1,0 +1,596 @@
+\documentclass[12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx} % Times Roman font standard for Cerebral Cortex
+\usepackage[margin=1.0in]{geometry}
+\usepackage{setspace}
+\doublespacing
+\usepackage{lineno}
+\linenumbers
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{soul}
+\usepackage[font=small,labelfont=bf,skip=6pt]{caption}
+\usepackage{float}
+\usepackage{microtype}
+\usepackage{fancyhdr}
+\usepackage[colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black]{hyperref}
+
+% Highlight macro for revised sections/text per Cerebral Cortex decision letter instructions:
+% "Please highlight in the manuscript the new text, or if major changes have been made,
+% instead of highlighting each word highlight what sections are new."
+\definecolor{revblue}{RGB}{0, 75, 145}
+\definecolor{revbg}{RGB}{235, 245, 255}
+\newcommand{\rev}[1]{\textcolor{revblue}{#1}}
+\newcommand{\revsection}[1]{\noindent\colorbox{revbg}{\parbox{\dimexpr\textwidth-2\fboxsep}{\textbf{\textcolor{revblue}{[REVISED SECTION: #1]}}}}\vspace{4pt}}
+
+% Import auto-generated statistical and figure path macros from pipeline
+\input{generated_stats.tex}
+
+\pagestyle{fancy}
+\setlength{\headheight}{15pt}
+\fancyhf{}
+\fancyhead[L]{\small CONNECT ATTENTION AND PERCEPTION TO SPATIOTEMPORAL DYNAMICS}
+\fancyhead[R]{\small \thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\setlength{\parskip}{4pt}
+\renewcommand{\arraystretch}{1.2}
+
+\begin{document}
+
+% ==============================================================================
+% TITLE PAGE
+% ==============================================================================
+\begin{singlespace}
+\begin{center}
+{\Large \textbf{Connecting Covert Attention and Visual Perception to the Spatiotemporal Dynamics of Alpha Band Activity, Cross-Frequency Coupling (CFC), and Functional Connectivity using Multivariate Pattern Analysis (MVPA)}}\\[16pt]
+
+{\large \textbf{Sarah S. Sheldon\textsuperscript{1,*}, Alona Fyshe\textsuperscript{1,2}, and Kyle E. Mathewson\textsuperscript{1,3}}}\\[12pt]
+
+\textsuperscript{1}Department of Psychology, Faculty of Science, University of Alberta, Edmonton, AB, T6G 2R3, Canada\\
+\textsuperscript{2}Department of Computing Science, Faculty of Science, University of Alberta, Edmonton, AB, T6G 2R3, Canada\\
+\textsuperscript{3}Neuroscience and Mental Health Institute, Faculty of Medicine and Dentistry, University of Alberta, Edmonton, AB, T6G 2R3, Canada\\[14pt]
+\end{center}
+
+\noindent\textbf{Author Note}\\
+Sarah S. Sheldon \url{https://orcid.org/0000-0002-4026-8939}\\
+Alona Fyshe \url{https://orcid.org/0000-0003-4367-0306}\\
+Kyle E. Mathewson \url{https://orcid.org/0000-0003-4856-3980}\\[6pt]
+\textsuperscript{*}Correspondence concerning this article should be addressed to Sarah S. Sheldon, Department of Psychology, University of Alberta, Edmonton, Alberta, T6G 2R3, Canada. Email: \texttt{ssheldon@ualberta.ca}\\[6pt]
+\textbf{Running Title:} Connect Attention and Perception to Spatiotemporal Dynamics\\
+\textbf{Manuscript ID:} CerCor-2022-00354 (Revised Submission)
+\end{singlespace}
+
+\newpage
+
+% ==============================================================================
+% ABSTRACT
+% ==============================================================================
+\section*{Abstract}
+\revsection{Abstract --- Revised for Reviewers 1 \& 2 (abbreviations defined, concise framing, pre-stimulus terminology)}
+\noindent
+\rev{Pre-stimulus alpha oscillations (8--14 Hz) play a central role in visual attention and perception, yet whether their effects are mediated directly by local alpha amplitude, by local alpha--gamma cross-frequency coupling (CFC), or by inter-electrode alpha functional connectivity remains debated. To compare the information content of these three candidate mechanisms directly, we extracted single-trial pre-stimulus time courses of local alpha amplitude, local alpha--gamma CFC, and inter-electrode alpha functional connectivity from electroencephalography (EEG) data recorded while participants ($N = \statNIncluded$) performed a cued orientation perception task. Using data from the 1000 ms interval prior to stimulus onset, the spatiotemporal patterns of each metric were submitted to linear support vector machine (SVM) classification to determine which neural dynamics best distinguished trials with covert spatial attention (informative cue) from trials without covert spatial attention (non-informative cue). The same spatiotemporal patterns were submitted to linear support vector regression (SVR) to test which dynamics predicted trial-by-trial behavioral response errors. Classification results revealed that pre-stimulus alpha amplitude most consistently distinguished trials with and without covert attention across the cue--target interval. Among the tested metrics, pre-stimulus alpha amplitude was most sensitive to the deployment of covert spatial attention. In contrast, none of the metrics strongly or consistently predicted trial-by-trial orientation perception accuracy. Together, these findings are consistent with the baseline sensory excitability model (BSEM), whereby pre-stimulus alpha amplitude reflects top-down modulation of baseline sensory excitability without directly determining fine orientation discrimination accuracy.}
+
+\vspace{8pt}
+\noindent\textbf{Keywords:} MVPA; cross-frequency coupling; functional connectivity; covert attention; alpha oscillations; gamma oscillations; orientation perception; spatial attention; support vector machines; SVM classification; SVR
+
+\newpage
+
+% ==============================================================================
+% INTRODUCTION
+% ==============================================================================
+\section*{Introduction}
+\revsection{Introduction --- Restructured to separate theoretical background from study approach and hypotheses (Reviewer 2)}
+
+Electroencephalography (EEG) is one of the oldest and most well-established neuroimaging techniques used by researchers and clinicians. Alpha oscillations (8--14 Hz) were the first EEG frequency band identified (Berger 1929) and are particularly interesting to cognitive neuroscience researchers due to extensive evidence indicating that they play a critical role in visual perception and attention (Klimesch et al. 2007; Mathewson et al. 2011; Klimesch 2012; Mathewson et al. 2012; Clayton et al. 2015; Frey et al. 2015; VanRullen 2016). Exactly what that role is, however, remains debated. For example, some researchers propose that alpha oscillations inhibit the flow of irrelevant information into sensory areas or from sensory areas to higher-order cortical locations (Klimesch et al. 2007; Jensen and Mazaheri 2010; Foxe and Snyder 2011; Mathewson et al. 2011; Chaumon and Busch 2014), whereas others propose that alpha oscillations indirectly control perception and attention by modulating higher-frequency activity (e.g., gamma oscillations, $>30\text{ Hz}$) involved in local sensory processing (Voytek 2010; Jensen et al. 2014; Zazio et al. 2020).
+
+\rev{One reason the precise relationship between alpha oscillations and visual perception has remained elusive is that changes in subjective perceptual reports have often been conflated with changes in objective sensory precision.} For example, recent studies investigating the effect of pre-stimulus power on perception found that participants were more likely to report seeing a stimulus when pre-stimulus alpha (and low beta) power was low, even when no stimulus was physically presented (Samaha et al. 2017; Iemi and Busch 2018; Samaha et al. 2020). To account for these findings, Samaha et al. (2020) proposed the baseline sensory excitability model (BSEM), which states that spontaneous alpha amplitude indiscriminately modulates the baseline firing rate of sensory neurons such that the entire sensory response distribution shifts without changing the separability of the signal and noise representations. Furthermore, because internal fluctuations in sensory neuron excitability are not privy to higher-level decision-making areas (Samaha et al. 2020), participants fail to adjust their decision criteria accordingly; consequently, they are not only more likely to report stimulus presence and make more false alarms, but also report higher confidence in their decisions even though objective detection and discrimination sensitivity does not change. These predictions have been confirmed by studies using signal detection theory (Samaha et al. 2017; Iemi and Busch 2018) and by Benwell et al. (2018), who found that pre-stimulus alpha power correlated with participants' subjective visuospatial bias in a landmark line-length judgment task rather than objective discrimination accuracy.
+
+In contrast, Zazio et al. (2020) proposed the oscillation-based probability of response (OPR) model, which posits that the effects of alpha oscillations on perception are mediated by local alpha--gamma cross-frequency interactions that modulate the probability of sensory neurons responding to a visual stimulus. Specifically, the OPR model proposes two distinct alpha--gamma cross-frequency coupling (CFC) mechanisms that can affect visual responsiveness: (1) alpha amplitude modulates gamma amplitude (amplitude--amplitude coupling, AAC; suppression of gamma amplitude), such that increased alpha power raises the threshold for neuronal responding (Chaumon and Busch 2014); or (2) alpha phase modulates gamma amplitude (phase--amplitude coupling, PAC; desynchronization of gamma bursts), such that increased alpha activity reduces the gain of the sensory response (Chaumon and Busch 2014; Zazio et al. 2020). Independent lines of research support the role of gamma oscillations in sensory enhancement (Pritchett et al. 2015; Ni et al. 2016), the inverse relationship between alpha activity, cortical excitability, and sensory perception (Samuel et al. 2018; de Graaf et al. 2020), and the modulation of gamma oscillatory activity by transcranial stimulation at alpha frequencies (Hamidi 2009; Herring et al. 2019; Okazaki et al. 2020).
+
+In addition to local within-area dynamics, a third possibility is that coordinated activity across distributed brain areas---quantified via alpha-band functional connectivity---better accounts for top-down attentional modulation and perceptual performance. Previous studies have linked alpha-mediated functional connectivity to visual task performance and endogenous attentional control. For example, Cohen and van Gaal (2013) found that stimulus anticipation was associated with alpha-band interactions between occipital and medial frontal cortex, and that participants with stronger network interactions were more likely to adapt their performance following perceptual errors. Other studies have reported alpha-mediated phase and amplitude interactions across parietal, frontal, and occipital regions during visuospatial attentional orienting (Plomp et al. 2015; Doesburg et al. 2016), suggesting that alpha oscillations mediate top-down control of visual cortex through large-scale functional networks (Sadaghiani and Kleinschmidt 2016).
+
+It is important to note that the BSEM, the OPR model, and large-scale alpha functional connectivity are not mutually exclusive: local alpha--gamma coupling (OPR) could provide a microcircuit mechanism underlying baseline excitability shifts (BSEM), which in turn may be coordinated by long-range frontoparietal--occipital connectivity. Moreover, while BSEM and OPR were primarily formulated to explain spontaneous perceptual fluctuations, both frameworks suggest that top-down visuospatial attention operates through these same oscillatory pathways.
+
+\rev{In the current study, we directly compared the information content of pre-stimulus alpha amplitude, local alpha--gamma CFC (both AAC and multiple PAC estimators), and inter-electrode alpha functional connectivity using time-resolved multivariate pattern analysis (MVPA). Participants performed a cued continuous orientation perception task while 32-channel EEG was recorded. Using linear support vector machine (SVM) classification, we tested which pre-stimulus spatiotemporal EEG metrics contained decodable information distinguishing trials with covert spatial attention (informative directional cues) from trials without covert spatial attention (non-informative neutral cues). Using linear support vector regression (SVR), we tested whether the same pre-stimulus spatiotemporal patterns predicted trial-by-trial behavioral orientation response errors. As summarized in Table~\ref{tab:hypotheses}, the BSEM predicts that pre-stimulus alpha amplitude (and potentially AAC) should reliably classify the presence of covert spatial attention (informative vs.\ non-informative cues) due to top-down shifts in baseline excitability, but should not predict objective orientation discrimination precision (response error magnitude) on non-informative trials. Conversely, if local alpha--gamma PAC sharpens the signal-to-noise ratio of sensory representations as proposed by the OPR model, PAC should both classify attentional engagement and predict trial-by-trial orientation response errors.}
+
+% ==============================================================================
+% TABLE 1 (Embedded in text per Cerebral Cortex formatting guidelines)
+% ==============================================================================
+\begin{table}[H]
+\centering
+\caption{\textbf{Overview of predicted outcomes that support the baseline sensory excitability model (BSEM) or the oscillation-based probability of response (OPR) model.}}
+\label{tab:hypotheses}
+\begin{singlespace}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Baseline Sensory Excitability Model (BSEM)} & \textbf{Oscillation-Based Probability of Response (OPR) Model} \\
+\midrule
+\textbf{1. Attentional Classification (SVM):}\newline
+Above-chance classification of non-informative vs.\ informative cued trials by alpha amplitude (and/or AAC)\newline
+\textbf{AND}\newline
+At-chance classification of non-informative vs.\ informative cued trials by phase--amplitude coupling (PAC).
+&
+\textbf{1. Attentional Classification (SVM):}\newline
+At-chance classification of non-informative vs.\ informative cued trials by alpha amplitude alone\newline
+\textbf{AND}\newline
+Above-chance classification of non-informative vs.\ informative cued trials by phase--amplitude coupling (PAC) \textbf{OR} amplitude--amplitude coupling (AAC). \\
+\midrule
+\textbf{2. Perceptual Error Prediction (SVR):}\newline
+Alpha amplitude and AAC are not predictive of trial-by-trial orientation response errors on trials with non-informative cues.
+&
+\textbf{2. Perceptual Error Prediction (SVR):}\newline
+Phase--amplitude coupling (PAC) \textbf{OR} amplitude--amplitude coupling (AAC) is predictive of trial-by-trial orientation response errors across trial types. \\
+\bottomrule
+\end{tabularx}
+\end{singlespace}
+\end{table}
+
+% ==============================================================================
+% MATERIALS AND METHODS
+% ==============================================================================
+\section*{Materials and Methods}
+
+\subsection*{Participants}
+\statNRecruited{} participants from the University of Alberta community participated in the study (age range = \statAgeRange{} years). \statNExcludedEOG{} participants were excluded from the final analysis because more than \statEOGRejectPct{} of their trials contained horizontal eye movement or blink artifacts (leaving $N = \statNIncluded{}$ participants; see the \textit{EEG Preprocessing} section for details). All participants were right-handed, had normal or corrected-to-normal vision, and reported no history of neurological disorders. All participants gave informed written consent and were either compensated at a rate of \statCompRate{} or granted course research credit for their time. The study adhered to the tenets of the Declaration of Helsinki and was approved by the Internal Research Ethics Board at the University of Alberta.
+
+\subsection*{Cued Orientation Perception Task}
+\revsection{Task Methods --- Clarified fixation screen and self-paced break wording (Reviewer 2)}
+Participants were seated \statViewDistCm{} away from a $1920 \times 1080\text{ pixel}^2$ ViewPixx/EEG LCD monitor (VPixx Technologies, Quebec, Canada) with a refresh rate of \statRefreshRateHz{}, simulating a CRT display with LED backlight rastering. The rastering, along with 8-bit digital TTL output triggers yoked to the onset and value of the top-left pixel, allowed for submillisecond accuracy in pixel illumination times, which were confirmed with a photocell prior to the experiment. Stimuli were presented using a Windows 7 PC running MATLAB R2012b with the Psychophysics Toolbox (Version 3; Brainard 1997; Pelli 1997). The task code was a modified version of the Orientation Perception Task from Sheldon and Mathewson (2021; original code: \url{https://github.com/APPLabUofA/OrientTask_paper}). Video output was sent to the ViewPixx/EEG via an Asus Striker GTX760 (Fremont, CA) graphics processing unit.
+
+Each trial began with a white fixation dot presented at the center of the monitor flanked by two dark gray placeholder circles to the left and right for \statFixationDurMs{}, after which one of three possible cues appeared above the central fixation dot, vertically aligned to the top of the placeholder circles. Two cues were black triangles pointing toward the left or right, indicating the side on which the upcoming target would appear with 100\% validity (i.e., informative cues). The third cue consisted of both black triangles pointing toward each other, providing temporal warning but no spatial information about whether the target would appear on the left or right (i.e., non-informative cue). The cue remained on screen for 1242, 1284, 1325, or 1367 ms (randomized uniformly across trials). Following the cue interval, the target appeared for \statTargetDurMs{} (one monitor refresh) in the center of either the left or right circle. On informative cue trials, the target always appeared on the cued side; on non-informative cue trials, the target appeared on the left or right with equal probability (50\%/50\%). The target had the shape of a clock needle pointing toward one of \statNOrientations{} predefined, evenly spaced directions spanning $360^\circ$, selected randomly on each trial. A bilateral backward mask lasting \statMaskDurMs{} with a constant \statTargetMaskSOAMs{} target--mask stimulus-onset asynchrony (SOA) appeared in the center of both circles regardless of target side. The mask was created by overlaying the target needle oriented across all \statNOrientations{} directions, forming a star shape (Figure~\ref{fig:fig1}A). \rev{Following mask offset, a \statPostMaskBlankMs{} post-mask delay interval occurred during which the display returned to the initial fixation configuration (the central white fixation dot and the two empty dark gray placeholder circles).} After this interval, a response screen appeared with a movable needle at the center of the screen. Using the computer mouse, participants rotated the response needle to match the perceived orientation of the target. If participants detected a target but were uncertain of its orientation, they were instructed to make their best estimate. Responses were self-paced without feedback, and the next trial began immediately after the participant clicked to confirm the needle orientation (Figure~\ref{fig:fig1}A).
+
+Participants completed \statNBlocks{} blocks of \statTrialsPerBlock{} trials each, preceded by \statPracticeTrials{} practice trials at the start of the session, yielding \statTotalTrials{} total trials (~33\% non-informative cue divided equally between left and right targets, ~33\% informative cue with right targets, and ~33\% informative cue with left targets). \rev{Between blocks (every \statTrialsPerBlock{} trials), participants were given a self-paced break and could rest for as long as they wished before initiating the next block.} Comprehensive written and verbal instructions demonstrating each trial component were provided prior to the practice block.
+
+Before the main cued orientation perception task, participants completed a staircased cued target detection task with identical timing and spatial parameters, except that participants simply reported whether or not they detected the target using the keyboard. Target luminance was controlled by an 8-bit grayscale value in Psychtoolbox ranging from the background gray (invisible; value = 256) to black (maximum contrast; value = 0). This grayscale value was adjusted across trials using a 1-up/2-down staircase procedure targeting an individual detection proportion of \statStaircaseRate{} (Garc\'ia-P\'erez 1998; Kingdom and Prins 2016) across three blocks of \statTrialsPerBlock{} trials. Each participant's final target luminance for the main orientation perception task was set to their mean staircase value across the last two staircase blocks ($M = \statStaircaseGrayMean{}$, $\text{SD} = \statStaircaseGraySD{}$). The MATLAB task scripts for both tasks are openly available at \url{https://github.com/APPLabUofA/CuedOrientTask_paper}.
+
+% ==============================================================================
+% FIGURE 1 (Embedded in text per Cerebral Cortex guidelines)
+% ==============================================================================
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{\figPathOne}
+\caption{\textbf{Cued orientation perception task.} \textbf{(A)} Sequence of task events showing the duration of each screen presentation and the dimensions of the fixation dot, placeholder circles, directional/neutral cues, oriented needle target, bilateral star mask, and response needle. Stimulus dimensions are reported in degrees of visual angle. \textbf{(B)} Schematic of the behavioral response error calculation ($\text{Target Orientation} - \text{Response Orientation}$), reported in degrees.}
+\label{fig:fig1}
+\end{figure}
+
+\subsection*{EEG Recording}
+During the experiment, EEG was recorded using a Brain-Amp 32-channel amplifier (BrainVision) with gelled low-impedance passive electrodes (actiCAP; impedances kept below $5\text{ k}\Omega$ and verified at the start of the session). Thirty-one scalp electrodes were arranged according to the international 10--20 system (Fp1, Fp2, F7, F3, Fz, F4, F8, FC5, FC1, FCz, FC2, FC6, C3, Cz, C4, CP5, CP1, CP2, CP6, P7, P5, P3, Pz, P4, P6, P8, PO3, PO4, O1, Oz, O2), with a ground electrode at AFz. Two reference electrodes and vertical and horizontal bipolar electrooculogram (EOG) channels were recorded using passive Ag/AgCl EasyCap disk electrodes affixed to the left and right mastoids, above and below the left eye, and $1\text{ cm}$ lateral to the outer canthus of each eye (connected via the amplifier AUX ports). SuperVisc electrolyte gel and gentle abrasion with a blunted syringe tip were used to lower impedances below $5\text{ k}\Omega$ across all sites. EEG was recorded online referenced to the left mastoid and re-referenced offline to the arithmetic average of the left and right mastoids.
+
+Data were digitized at $1000\text{ Hz}$ with 24-bit resolution and an online bandpass filter of $0.1\text{--}250\text{ Hz}$. Recordings took place inside a dimly lit, sound- and radio-frequency-attenuated chamber (Electromedical Instruments) with copper mesh shielding the window. The monitor, speakers, and amplifier were powered by DC/external sources outside the chamber, USB peripherals routed externally, internal AC outlets remained disconnected, and all radio-transmitting devices (e.g., mobile phones) were removed from the room.
+
+\subsection*{Data Analyses}
+Data preprocessing and analyses were performed using MATLAB R2021a (The MathWorks Inc., Natick, MA, USA), EEGLAB 14.1.2b (Delorme and Makeig 2004), FieldTrip 20160928 (Oostenveld et al. 2011), Python 3, and custom scripts. Functional connectivity topographic plots were generated using code adapted from the FCLAB toolbox (Pezoulas et al. 2018; \url{https://github.com/ramsys28/FCLAB}). Raw behavioral and EEG datasets are available on the Open Science Framework (\url{https://osf.io/u6fgm/}), and all analysis and end-to-end reproducibility pipeline scripts are available on GitHub (\url{https://github.com/APPLabUofA/MVPA_CuedOrientTask_paper} and \url{https://github.com/APPLabUofA/OrientExoML}).
+
+\subsubsection*{Behavioral Data}
+\revsection{Behavioral Methods --- Clarified signed vs.\ absolute response error and permutation ANOVA wording (Reviewer 2)}
+\rev{On each trial, two behavioral error metrics were computed from the circular difference between the true target orientation and the participant's reported needle orientation (wrapped to the interval $[-180^\circ, +180^\circ]$; Figure~\ref{fig:fig1}B). First, \textit{signed response error} (referred to simply as response error) preserved the direction of the rotational deviation (clockwise vs.\ counterclockwise, ranging from $-180^\circ$ to $+180^\circ$) to test for systematic directional bias; because positive and negative errors cancel when averaged, a mean signed error near $0^\circ$ indicates the absence of systematic rotational bias. Second, \textit{absolute response error} was defined as the non-negative magnitude of the angular deviation ($|\text{Target} - \text{Response}|$, ranging from $0^\circ$ to $180^\circ$), indexing overall perceptual and response precision (where smaller values reflect more accurate orientation reproduction).}
+
+\rev{Both behavioral measures were analyzed using a $2 \times 2$ repeated-measures factorial ANOVA with Target Side (left vs.\ right) and Cue Type (informative vs.\ non-informative) as within-subject factors, evaluated via the non-parametric permutation-based $F_{\max}$ statistic. Compared with parametric ANOVAs, permutation-based $F_{\max}$ testing requires fewer distributional assumptions and provides strong control of familywise Type I error rates with minimal loss of statistical power (Fields and Kuperberg 2019).} The $F_{\max}$ analysis was implemented using code adapted from the Factorial Mass Univariate Toolbox (FMUT; Fields 2017; \url{https://github.com/ericcfields/FMUT}). Follow-up pairwise comparisons of significant main effects and interactions were conducted using two-tailed repeated-measures $t_{\max}$ permutation tests (Blair and Karniski 1993) via the \texttt{mxt\_perm1()} function from the Mass Univariate ERP Toolbox (Groppe et al. 2011), with $p$-values corrected for multiple comparisons using the Benjamini and Yekutieli (2001) false discovery rate (FDR) procedure at a 5\% FDR threshold. All permutation tests used $\statMVPAPerms{}$ random within-participant permutations and a familywise $\alpha = \statMVPAAlpha{}$.
+
+\subsubsection*{EEG Preprocessing}
+\revsection{EEG Preprocessing --- Clarified horizontal eye movement rejection criterion (Reviewer 2)}
+Offline, continuous EEG data were bandpass filtered between $0.1\text{ Hz}$ and $50\text{ Hz}$ using EEGLAB's FIR filter and segmented into $3800\text{ ms}$ epochs time-locked to target onset ($-2400\text{ ms}$ pre-target to $+1400\text{ ms}$ post-target). Baseline correction was performed by subtracting the mean voltage during the $200\text{ ms}$ interval following fixation onset, and epochs with voltage fluctuations exceeding $\pm 1000\,\mu\text{V}$ on any channel were discarded. Ocular artifacts were corrected using the regression-based procedure of Gratton et al. (1983), followed by a second $200\text{ ms}$ post-fixation baseline subtraction and removal of epochs with remaining fluctuations exceeding $\pm 500\,\mu\text{V}$.
+
+All epochs were then visually inspected to reject trials (from both EEG and behavioral analyses) contaminated by amplifier blocking, residual blinks, muscle bursts, or skin potentials. To strictly ensure that participants maintained central fixation and did not make overt saccades toward the cued location or target, we applied a split-half sliding-window step algorithm to the horizontal EOG (HEOG) channel from $-1600\text{ ms}$ pre-target (at least $200\text{ ms}$ prior to the earliest cue onset) through $+600\text{ ms}$ post-target (response screen onset) using a $100\text{ ms}$ window advanced in $10\text{ ms}$ steps. Any trial in which the mean HEOG voltage differed by more than $\statHEOGStepUV{}$ between the first and second halves of the sliding window (corresponding to an overt horizontal eye movement of approximately $1.5^\circ\text{--}2^\circ$) was marked as a saccade artifact and rejected (Hong et al. 2015; Hakim et al. 2019). \rev{Seven participants lost more than \statEOGRejectPct{} of their trials to this strict HEOG step threshold---indicating that they frequently made overt saccades rather than maintaining central fixation during the cue--target interval---and were therefore excluded from further analysis to ensure both sufficient trial counts for 10-fold MVPA cross-validation and uncontaminated covert attention epochs.}
+
+\subsubsection*{Spectral Parameterization of 1/f and Peak Alpha Components}
+\revsection{FOOOF \& IAF --- Clarified 1/f vs.\ peak decomposition and reported IAF summary statistics (Reviewer 2)}
+\rev{Neural power spectra comprise a broadband $1/f$-like background component overlaid with narrowband spectral peaks. To ensure that individual alpha peak estimates were not confounded by shifts in the broadband $1/f$ background, we used the FOOOF (Fitting Oscillations \& One-Over-F) spectral parameterization algorithm (version 1.0.0; Donoghue et al. 2020; \url{https://github.com/fooof-tools/fooof}) to separate the $1/f$ background component from narrowband Gaussian peaks within the alpha band (8--14 Hz). While the $1/f$ background and narrowband peaks are commonly referred to as aperiodic and periodic components, respectively, FOOOF mathematically separates the $1/f$ power-law decay from spectral peaks, which provides an effective isolation of the prominent alpha rhythm.}
+
+Prior to running FOOOF, single-trial power spectral density (PSD) was estimated across the $1000\text{ ms}$ pre-stimulus interval ($-1000\text{ to }0\text{ ms}$) for each participant and electrode using Welch's method (\texttt{pwelch} in MATLAB Signal Processing Toolbox; $500\text{ ms}$ Hamming window). FOOOF was fit across the $\statFOOOFFreqRange{}$ range ($\statFOOOFFreqRes{}$ frequency resolution) with the following parameters: peak width limits = $\statFOOOFPeakWidth{}$, maximum number of peaks = $\statFOOOFMaxPeaks{}$, minimum peak height = $\statFOOOFMinHeight{}$, peak threshold = $\statFOOOFPeakThresh{}$, and fixed $1/f$ mode. Four parameters ($1/f$ offset, $1/f$ exponent, goodness-of-fit $R^2$, and fit error) were submitted to $2 \times 2$ repeated-measures $F_{\max}$ permutation ANOVAs (Target Side $\times$ Cue Type across all 31 scalp electrodes; $\statMVPAPerms{}$ permutations; Bonferroni-corrected $\alpha = \statFOOOFBonfAlpha{}$).
+
+\subsubsection*{Individual Alpha Peak Detection}
+\rev{Within the 8--14 Hz alpha range, FOOOF-identified peak frequencies were extracted on a trial-by-trial basis for each participant and electrode. For subsequent narrowband filtering, the median alpha peak frequency was computed across trials within each of the four experimental conditions (informative cue/left target, non-informative cue/left target, informative cue/right target, and non-informative cue/right target) for each participant and electrode. Across participants, electrodes, and conditions, the grand-average median individual alpha peak frequency was $M = \statIAFGrandMeanHz{}$ ($\text{SD} = \statIAFGrandSDHz{}$, individual condition medians spanning $\statIAFRangeHz{}$). Condition- and electrode-specific median peak alpha frequencies were used to center the narrowband $\pm 1\text{ Hz}$ alpha filters for both the instantaneous alpha amplitude and local CFC analyses described below.}
+
+\subsubsection*{EEG Signal Metrics}
+All EEG metrics were computed on a single-trial basis for each participant and electrode (or electrode pair) across the $1000\text{ ms}$ pre-stimulus window ($-1000\text{ to }0\text{ ms}$ relative to target onset; Table~\ref{tab:metrics}). This window began at least $242\text{ ms}$ after the latest possible cue onset, avoiding contamination from early cue-evoked visual potentials (Luck 2014), and sliding analysis windows were strictly constrained not to extend past $0\text{ ms}$ (target onset). To prevent filter edge artifacts, epochs were padded with $2000\text{ ms}$ ($1400\text{ ms}$ empirical signal plus $600\text{ ms}$ zero-padding) on either side prior to two-pass zero-phase 4th-order Butterworth IIR bandpass filtering (\texttt{ft\_preproc\_bandpassfilter} in FieldTrip; Oostenveld et al. 2011) and analytic signal extraction via the Hilbert transform (\texttt{ft\_preproc\_hilbert} or MATLAB's \texttt{hilbert}). Instantaneous alpha amplitude was extracted by bandpass filtering within $\pm 1\text{ Hz}$ of each participant's electrode- and condition-specific median alpha peak frequency, yielding $1001$ pre-stimulus time points ($-1000\text{ to }0\text{ ms}$).
+
+% ==============================================================================
+% TABLE 2 (Embedded in text per Cerebral Cortex formatting guidelines)
+% ==============================================================================
+\begin{table}[H]
+\centering
+\caption{\textbf{Summary of the pre-stimulus EEG metrics extracted for SVM classification and SVR prediction.}}
+\label{tab:metrics}
+\begin{singlespace}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Within-Electrode (Local) Measures} & \textbf{Between-Electrode (Inter-Areal) Measures} \\
+\midrule
+\textbf{Instantaneous Alpha Amplitude:}\newline
+$\pm 1\text{ Hz}$ around individual FOOOF alpha peak
+&
+\textbf{Alpha Functional Connectivity (8--14 Hz):}\newline
+$\bullet$ Amplitude Envelope Correlation (Spearman's $\rho$, surface Laplacian)\newline
+$\bullet$ Weighted Phase-Lag Index (debiased wPLI)\newline
+$\bullet$ Imaginary Coherence (iCOH)\newline
+$\bullet$ Phase-Locking Value (PLV, surface Laplacian) \\
+\addlinespace[6pt]
+\textbf{Local Alpha--Gamma Cross-Frequency Coupling (CFC):}\newline
+$\bullet$ Amplitude--Amplitude Coupling (AAC; Spearman's $\rho$)\newline
+$\bullet$ Phase--Amplitude Coupling via Phase-Locking Value ($\text{PAC}_{\text{PLV}}$)\newline
+$\bullet$ Modulation Index (MI; Kullback--Leibler divergence)\newline
+$\bullet$ Direct Amplitude-Normalized Mean Vector Length ($\text{MVL}_{\text{\"Ozkurt}}$)\newline
+$\bullet$ General Linear Model PAC ($\text{PAC}_{\text{GLM}}$)
+& \\
+\bottomrule
+\end{tabularx}
+\end{singlespace}
+\end{table}
+
+\subsubsection*{Local Cross-Frequency Coupling (CFC)}
+\revsection{CFC Methods --- Clarified local CFC scope, OPR rationale for PAC/AAC vs.\ phase--phase coupling, and gamma filter bandwidth (Reviewer 2)}
+\rev{In the present study, we estimated \textit{local} (within-electrode) cross-frequency coupling rather than inter-areal (between-electrode) CFC, because both the BSEM and OPR models specifically concern how local alpha oscillations modulate excitability and gamma activity within visual and attentional cortical columns (Zazio et al. 2020). Furthermore, we focused specifically on amplitude--amplitude coupling (AAC) and phase--amplitude coupling (PAC)---rather than other forms of CFC such as phase--phase ($n:m$) coupling---because AAC and PAC are the two specific biophysical mechanisms posited by the OPR model to govern sensory threshold and response gain, respectively (Chaumon and Busch 2014; Zazio et al. 2020).} All local CFC metrics were computed within a $250\text{ ms}$ sliding window (capturing at least two full cycles of the lowest alpha frequency at $1000\text{ Hz}$) advanced in $1\text{ ms}$ steps across the $-1000\text{ to }0\text{ ms}$ pre-stimulus interval.
+
+\rev{Selecting appropriate filter bandwidths is essential for valid PAC estimation: while the phase-providing slow oscillation (alpha) must be filtered narrowly to yield a well-defined instantaneous phase ($\pm 1\text{ Hz}$ around the median alpha peak frequency), the amplitude-providing fast oscillation (gamma) must be filtered with a bandwidth at least twice the frequency of the modulating slow rhythm so that the sidebands induced by phase-modulation are not filtered out (Aru et al. 2015; Seymour et al. 2017; Davoudi et al. 2020). In our implementation (adapted from Seymour et al. 2017), we targeted the low-gamma band centered at $37.5\text{ Hz}$ (nominal $30\text{--}45\text{ Hz}$ gamma band of interest, below the $50\text{ Hz}$ preprocessing low-pass cutoff) and extracted a single broadband high-frequency analytic signal per trial using a proportional bandwidth of $\pm 0.4$ times the center frequency around the $30\text{--}45\text{ Hz}$ range (spanning $15\text{--}60\text{ Hz}$, bounded at $50\text{ Hz}$ by the preprocessing low-pass filter). Although the lower transition of this wide sideband-preserving filter extends into the upper beta range, a wide passband is mathematically required to preserve rapid alpha-rate ($8\text{--}14\text{ Hz}$) amplitude modulations of the gamma envelope without artificial smoothing (Aru et al. 2015).}
+
+Local AAC was quantified as Spearman's rank correlation ($\rho \in [-1, +1]$) between the instantaneous alpha and gamma amplitude envelopes within each $250\text{ ms}$ window (Cohen 2014). Because no single PAC estimator is universally optimal across all noise regimes (H\"ulsemann et al. 2019), we evaluated four complementary PAC metrics:
+\begin{enumerate}
+    \item \textbf{PAC Phase-Locking Value ($\text{PAC}_{\text{PLV}}$):} Quantifies the phase synchronization between the instantaneous alpha phase and the phase of the alpha-band-filtered gamma amplitude envelope (Cohen 2008; adapted from \texttt{pacMEG.m} by Seymour et al. 2017), ranging from $0$ (no coupling) to $1$ (complete coupling).
+    \item \textbf{Modulation Index (MI):} Quantifies the Kullback--Leibler divergence of the phase--amplitude histogram (18 phase bins, iteratively halved if empty bins occurred) from a uniform distribution, normalized by Shannon entropy to range from $0$ to $1$ (Tort et al. 2008, 2010; computed via EEGLAB PACTools v1.0.1, Martinez-Cancino et al. 2020).
+    \item \textbf{Direct Amplitude-Normalized Mean Vector Length ($\text{MVL}_{\text{\"Ozkurt}}$):} Improves upon the classic Canolty et al. (2006) mean vector length by normalizing by the root-mean-square of the high-frequency amplitude envelope so that the metric ($\in [0, 1]$) is invariant to absolute gamma power fluctuations (\"Ozkurt and Schnitzler 2011; adapted from Seymour et al. 2017).
+    \item \textbf{General Linear Model PAC ($\text{PAC}_{\text{GLM}}$):} Quantifies the proportion of variance ($r^2 \in [0, 1]$) in the high-frequency amplitude envelope explained by a linear regression on the sine and cosine of the slow alpha phase, removing sensitivity to co-modulation (Penny et al. 2008; computed via PACTools v1.0.1).
+\end{enumerate}
+
+\subsubsection*{Alpha Functional Connectivity}
+Inter-electrode functional connectivity in the alpha band (8--14 Hz bandpass filter) was calculated across all pairwise combinations of the 31 scalp electrodes within $375\text{ ms}$ sliding windows (capturing at least three full alpha cycles; Cohen 2014) advanced in $5\text{ ms}$ steps from $-1000\text{ to }0\text{ ms}$. To mitigate volume conduction artifacts, we used two complementary strategies. First, on the sensor-level signals, we computed two measures inherently insensitive to zero-lag volume conduction: (1) the debiased \textbf{weighted phase-lag index (wPLI)} (Vinck et al. 2011; adapted from FieldTrip and Cohen 2014), which weights phase differences by the magnitude of the imaginary component of the cross-spectrum; and (2) \textbf{imaginary coherence (iCOH)} (Nolte et al. 2004; Cohen 2014). Second, we applied a spherical spline surface Laplacian spatial filter (Perrin et al. 1989; Legendre polynomial order = $20$, smoothing $\lambda = 10^{-5}$; \texttt{laplacian\_perrinX.m} from Cohen 2014; Kayser and Tenke 2015) prior to 8--14 Hz bandpass filtering, and then computed within-trial across-time \textbf{phase-locking value (PLV)} (Lachaux et al. 1999; adapted from \texttt{pn\_eegPLV.m} in FCLAB, Pezoulas et al. 2018) and \textbf{amplitude envelope correlation} (Spearman's $\rho$ between pairwise alpha envelopes).
+
+\subsection*{Multivariate Pattern Analysis (MVPA)}
+To test whether pre-stimulus spatiotemporal patterns of alpha amplitude, local CFC, and inter-electrode functional connectivity discriminated attentional states and predicted perceptual precision, we employed linear support vector machines (SVMs; Vapnik 1996) implemented via LIBSVM (Chang and Lin 2011) and the Decision Decoding Toolbox (DDTBOX; Bode et al. 2019, 2021). Linear kernels were selected over nonlinear classifiers to prevent overfitting and to allow valid biophysical interpretation of Haufe-transformed spatial feature weights (Haufe et al. 2014; Grootswagers et al. 2017;itchie et al. 2019). Prior to decoding, each feature was min--max normalized across trials within each participant (Ben-Hur and Weston 2010).
+
+For \textbf{SVM classification} ($C\text{-SVM}$, cost parameter $C = \statSVMCostC{}$), classifiers were trained separately for left-target and right-target trials to discriminate informative-cue trials from non-informative-cue trials, with trial counts balanced across classes via random undersampling (Grootswagers et al. 2017). For \textbf{support vector regression (SVR)} ($\epsilon\text{-SVR}$, cost parameter $C = \statSVRCostC{}$), models were trained separately within each of the four Cue Type $\times$ Target Side conditions to predict continuous single-trial signed response errors from the pre-stimulus spatiotemporal EEG features.
+
+Decoding performance was evaluated for each participant using a \statCVFolds{}-fold cross-validation procedure repeated \statCVRepeatsEmp{} times ($\statCVTotalEmp{}$ total train/test evaluations averaged per participant; Grootswagers et al. 2017; Bode et al. 2019). For SVR, predictive accuracy was quantified as the Fisher-$Z$ transformed Pearson correlation coefficient ($r_z$) between predicted and true single-trial response errors averaged across the \statCVTotalEmp{} cross-validation folds. Empirical chance distributions were estimated for every participant, metric, and time window using an identical \statCVFolds{}-fold cross-validation procedure with independently permuted trial labels repeated \statCVRepeatsNull{} times ($\statCVTotalNull{}$ null evaluations averaged per participant; Bode et al. 2019, 2021). Decoding was performed across sliding pre-stimulus windows: $\statAlphaWinMs{}$ windows ($\statAlphaStepMs{}$ step, $\statAlphaNPoints{}$ windows) for alpha amplitude, $\statCFCWinMs{}$ windows ($\statCFCStepMs{}$ step, $\statCFCNPoints{}$ windows) for CFC metrics, and $\statFCWinMs{}$ windows ($\statFCStepMs{}$ step, $\statFCNPoints{}$ windows) for functional connectivity metrics.
+
+\revsection{MVPA Statistical Control --- Added discussion of familywise Type I error across metrics (Reviewer 1)}
+At the group level, empirical decoding time courses were compared against subject-matched permuted-label chance time courses using right-tailed paired $t$-tests ($\alpha = \statMVPAAlpha{}$), corrected for multiple comparisons across all time windows within each analysis via right-tailed $t_{\max}$ permutation testing ($\statMVPAPerms{}$ iterations, familywise $\alpha = \statMVPAAlpha{}$; Blair and Karniski 1993). \rev{Because $t_{\max}$ permutation correction was applied across time points within each metric and target-side analysis separately, an important consideration is whether testing multiple CFC and connectivity metrics inflates the experiment-wise Type I error rate. We retained within-analysis $t_{\max}$ correction so as not to artificially penalize the sensitivity of the CFC and functional connectivity analyses relative to alpha amplitude; however, as we emphasize in the Results and Discussion, isolated single-window significance spikes (such as those observed at a single time point in $\text{MVL}_{\text{\"Ozkurt}}$ or wPLI) would not survive an additional Bonferroni correction across all 10 metrics ($\alpha_{\text{Bonf}} = \statMVPABonfAlpha{}$), whereas the sustained pre-stimulus decoding of alpha amplitude ($>\statSVMAlphaPctSigMin{}$ of pre-stimulus windows, $p < 0.001$) remains robust under any experiment-wise correction threshold.}
+
+For time windows showing significant group-level decoding, raw SVM/SVR feature weights were averaged across the significant window, transformed into forward activation patterns via the covariance method of Haufe et al. (2014), $z$-scored across channels/connections, and tested for statistical significance using right-tailed $t_{\max}$ permutation tests ($\statMVPAPerms{}$ iterations, $\alpha = \statMVPAAlpha{}$).
+
+% ==============================================================================
+% RESULTS
+% ==============================================================================
+\section*{Results}
+
+\subsection*{Behavioral Data}
+\revsection{Behavioral Results --- Ordered Panel A (Absolute Error) and Panel B (Signed Error) consistently across text and Figure 2 (Reviewer 2)}
+\rev{Behavioral performance across the four experimental conditions is presented in Figure~\ref{fig:fig2}. For \textit{absolute response error} (error magnitude; Figure~\ref{fig:fig2}A), the $2 \times 2$ permutation-based $F_{\max}$ ANOVA revealed significant main effects of Target Side ($F_{\max}(\statBehavDF{}) = \statAbsErrSideFmax{}$, critical $F_{\max} = \statAbsErrSideCrit{}$, $p \statAbsErrSideP{}$) and Cue Type ($F_{\max}(\statBehavDF{}) = \statAbsErrCueFmax{}$, critical $F_{\max} = \statAbsErrCueCrit{}$, $p \statAbsErrCueP{}$), as well as a significant Target Side $\times$ Cue Type interaction ($F_{\max}(\statBehavDF{}) = \statAbsErrIntFmax{}$, critical $F_{\max} = \statAbsErrIntCrit{}$, $p \statAbsErrIntP{}$). Follow-up FDR-corrected pairwise $t_{\max}$ comparisons demonstrated that informative spatial cues significantly reduced absolute orientation error compared to non-informative cues when targets appeared in the left visual hemifield ($p < 0.05$), whereas absolute error for right-hemifield targets was already low in the non-informative condition and did not differ significantly between cue types. In contrast, for \textit{signed response error} (directional rotational bias; Figure~\ref{fig:fig2}B), there were no significant main effects of Target Side ($F_{\max}(\statBehavDF{}) = \statRelErrSideFmax{}$, critical $F_{\max} = \statRelErrSideCrit{}$, $p = \statRelErrSideP{}$) or Cue Type ($F_{\max}(\statBehavDF{}) \statRelErrCueFmax{}$), and no significant interaction ($F_{\max}(\statBehavDF{}) = \statRelErrIntFmax{}$, critical $F_{\max} = \statRelErrIntCrit{}$, $p = \statRelErrIntP{}$), confirming that participants exhibited no systematic clockwise or counterclockwise rotational bias.}
+
+% ==============================================================================
+% FIGURE 2 (Embedded in text per Cerebral Cortex guidelines)
+% ==============================================================================
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{\figPathTwo}
+\caption{\textbf{Summary of behavioral results.} \textbf{(A)} Mean absolute response error (magnitude of orientation error in degrees) as a function of Target Side (Left vs.\ Right) and Cue Type (Informative vs.\ Non-Informative). Informative spatial cues significantly reduced error magnitude for left-hemifield targets ($*p < 0.05$, FDR-corrected $t_{\max}$ permutation tests; $\text{ns} = \text{not significant}$). \textbf{(B)} Mean signed response error (directional bias in degrees) across conditions, showing no significant main effects or interaction. Error bars in both panels represent $\pm 1\text{ SEM}$ across participants ($N = \statNIncluded{}$).}
+\label{fig:fig2}
+\end{figure}
+
+\subsection*{FOOOF 1/f Background and Goodness-of-Fit Parameters}
+The $1/f$ background offset and exponent parameters showed no significant main effects of Target Side or Cue Type and no significant interaction across scalp electrodes (mean critical $F_{\max}(\statBehavDF{}) = \statFOOOFOffsetCrit{}$ and $\statFOOOFExpCrit{}$, respectively, at $\alpha = \statFOOOFBonfAlpha{}$). Similarly, FOOOF goodness-of-fit measures ($R^2$ and fit error) did not differ significantly across experimental conditions (mean critical $F_{\max}(\statBehavDF{}) = \statFOOOFRsqCrit{}$ and $\statFOOOFErrCrit{}$, respectively), confirming that decoding differences between cue conditions were not driven by broadband $1/f$ spectral shifts.
+
+\subsection*{Support Vector Machine (SVM) Classification of Covert Attention}
+\revsection{SVM Classification Results --- Removed colloquialisms and added Figure 7 summary comparison (Reviewer 2)}
+
+\subsubsection*{Instantaneous Alpha Amplitude}
+\rev{The linear SVM classifier reliably distinguished trials with an informative cue from trials with a non-informative cue using the pre-stimulus spatiotemporal pattern of instantaneous alpha amplitude (Figure~\ref{fig:fig3}A, second row; summarized in Figure~\ref{fig:fig7}A--B).} Classification accuracy was significantly above permuted-label chance across the majority of pre-stimulus time windows ($>\statSVMAlphaPctSigMin{}$ of the $-1000\text{ to }0\text{ ms}$ epoch, $p < 0.05$, $t_{\max}$ corrected) for both left targets ($\statAlphaWinMs{}$ windows spanning $\statSVMAlphaLeftWin{}$) and right targets ($\statSVMAlphaRightWin{}$). Haufe-transformed feature weight topographies averaged across the pre-stimulus epoch revealed that classification was primarily driven by central and medial electrodes over centroparietal, parietal, parieto-occipital, and occipital cortex (Figure~\ref{fig:fig3}B). For left-hemifield targets, left and midline occipital electrodes (O1, Oz) did not reach significance after $t_{\max}$ correction, whereas bilateral and midline posterior sites contributed significantly when targets were cued to the right hemifield.
+
+\subsubsection*{Local Cross-Frequency Coupling (CFC)}
+Among the five local alpha--gamma CFC metrics, only $\text{MVL}_{\text{\"Ozkurt}}$ yielded above-chance SVM classification of informative versus non-informative cues, and only at isolated, transient time points: at $\statSVMMVLLeftSigMs{}$ pre-stimulus for left targets, and at $\statSVMMVLRightSigWinMs{}$ and $\statSVMMVLRightSigPtMs{}$ pre-stimulus for right targets (Figure~\ref{fig:fig3}A, fourth row; Figure~\ref{fig:fig7}A--B). Neither the window-specific nor the epoch-averaged Haufe-transformed feature weights for $\text{MVL}_{\text{\"Ozkurt}}$ reached statistical significance at any electrode after multiple comparison correction (Figure~\ref{fig:fig3}B). None of the remaining CFC measures (AAC, MI, $\text{PAC}_{\text{GLM}}$, or $\text{PAC}_{\text{PLV}}$) classified covert attention above chance at any pre-stimulus time point.
+
+% ==============================================================================
+% FIGURE 3 (Embedded in text per Cerebral Cortex guidelines)
+% ==============================================================================
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.98\textwidth]{\figPathThree}
+\caption{\textbf{Spatiotemporal SVM classification and feature weight analysis for alpha amplitude and local cross-frequency coupling (CFC) measures.} \textbf{(A)} Time courses of classification accuracy (\%) distinguishing non-informative vs.\ informative cues across all 31 electrodes, trained separately for left targets (left column) and right targets (right column). Black traces denote empirical accuracy; blue traces denote permuted-label chance accuracy ($\pm 1\text{ SEM}$). Green shaded intervals indicate statistically significant classification above chance ($p < 0.05$, right-tailed $t_{\max}$ permutation corrected). The vertical dashed line marks target onset ($0\text{ ms}$). Inset scalp topographies display $z$-standardized Haufe-transformed absolute feature weights averaged across the indicated significant time windows; green stars mark electrodes with significant feature weights ($p < 0.05$, $t_{\max}$ corrected). \textbf{(B)} Scalp topographies of $z$-standardized absolute feature weights averaged across the entire $-1000\text{ to }0\text{ ms}$ pre-stimulus epoch. $\text{AAC} = \text{amplitude--amplitude coupling}$; $\text{MI} = \text{Modulation Index}$; $\text{MVL}_{\text{\"Ozkurt}} = \text{amplitude-normalized mean vector length}$; $\text{PAC} = \text{phase--amplitude coupling}$.}
+\label{fig:fig3}
+\end{figure}
+
+\subsubsection*{Alpha Functional Connectivity}
+Among the four inter-electrode alpha functional connectivity metrics, only debiased weighted phase-lag index (wPLI) exceeded permuted-label chance at a single isolated time window ($\statSVMwPLIRightSigMs{}$ pre-stimulus for right targets; Figure~\ref{fig:fig4}A; Figure~\ref{fig:fig7}A--B). Feature weight analysis revealed that no pairwise electrode connections contributed significantly above chance either at $\statSVMwPLIRightSigMs{}$ or across the full pre-stimulus epoch (Figure~\ref{fig:fig4}B). Amplitude envelope correlation, PLV, and iCOH remained at chance throughout the entire pre-stimulus interval.
+
+% ==============================================================================
+% FIGURE 4 (Embedded in text per Cerebral Cortex guidelines)
+% ==============================================================================
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.98\textwidth]{\figPathFour}
+\caption{\textbf{Spatiotemporal SVM classification and feature weight analysis for inter-electrode alpha functional connectivity metrics.} \textbf{(A)} Time courses of classification accuracy (\%) distinguishing non-informative vs.\ informative cues across all pairwise electrode connections for left and right targets. Black traces denote empirical accuracy; blue traces denote permuted-label chance accuracy ($\pm 1\text{ SEM}$). The green shaded bar indicates the single significant time window for wPLI on right-target trials ($\statSVMwPLIRightSigMs{}$, $p < 0.05$, $t_{\max}$ corrected). The inset head plot displays pairwise feature weights exceeding $|z| > 0.45$ at $\statSVMwPLIRightSigMs{}$. \textbf{(B)} Pairwise connection feature weights ($|z| > 0.30$) averaged across the $-1000\text{ to }0\text{ ms}$ pre-stimulus epoch. $\text{Correlation} = \text{Laplacian amplitude envelope correlation}$; $\text{wPLI} = \text{weighted phase-lag index}$; $\text{PLV} = \text{Laplacian phase-locking value}$; $\text{iCOH} = \text{imaginary coherence}$.}
+\label{fig:fig4}
+\end{figure}
+
+\subsection*{Support Vector Regression (SVR) Prediction of Response Errors}
+
+\subsubsection*{Instantaneous Alpha Amplitude}
+SVR analysis tested whether pre-stimulus spatiotemporal EEG patterns predicted continuous trial-by-trial orientation response errors within each condition (Figure~\ref{fig:fig5}A; Figure~\ref{fig:fig7}C). For instantaneous alpha amplitude, prediction accuracy exceeded permuted-label chance at a single brief time point ($\statSVRAlphaRightSigMs{}$ pre-stimulus) exclusively on non-informative cue trials with right-hemifield targets. At $\statSVRAlphaRightSigMs{}$, significant Haufe-transformed feature weights were concentrated over occipital, parieto-occipital, and medial parietal electrodes (excluding lateral parietal sites P7, P8, and P5), with medial centroparietal sites (CP1, CP2) also reaching significance in the epoch-averaged topography (Figure~\ref{fig:fig5}B). Alpha amplitude did not significantly predict trial-by-trial response errors at any time point on informative cue trials.
+
+\subsubsection*{Local Cross-Frequency Coupling (CFC)}
+For local alpha--gamma AAC, SVR prediction of single-trial response errors exceeded chance at a single brief time window ($\statSVRAACLeftSigMs{}$ pre-stimulus) on non-informative cue trials with left-hemifield targets (Figure~\ref{fig:fig5}A, top row; Figure~\ref{fig:fig7}C). Feature weight analysis identified midline frontal electrode Fz as a significant contributor at $\statSVRAACLeftSigMs{}$, and frontocentral electrodes FCz and FC1 across the full epoch (Figure~\ref{fig:fig5}B). None of the four phase--amplitude coupling metrics ($\text{MI}$, $\text{MVL}_{\text{\"Ozkurt}}$, $\text{PAC}_{\text{GLM}}$, or $\text{PAC}_{\text{PLV}}$) significantly predicted trial-by-trial response errors in any condition.
+
+% ==============================================================================
+% FIGURE 5 (Embedded in text per Cerebral Cortex guidelines)
+% ==============================================================================
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.98\textwidth]{\figPathFive}
+\caption{\textbf{Spatiotemporal SVR prediction and feature weight analysis for alpha amplitude and local cross-frequency coupling (CFC) measures.} \textbf{(A)} Time courses of SVR prediction accuracy (Fisher-$Z$ transformed correlation coefficient $r_z$ between predicted and observed trial-by-trial response errors) for non-informative cues (left two columns) and informative cues (right two columns), subdivided by left and right targets. Black traces show empirical $r_z$; blue traces show permuted-label null $r_z$ ($\pm 1\text{ SEM}$). Green shaded bars denote time windows significantly above chance ($p < 0.05$, $t_{\max}$ corrected). Inset topographies show $z$-standardized feature weights at the significant windows (green stars: $p < 0.05$, $t_{\max}$ corrected). \textbf{(B)} Epoch-averaged $z$-standardized feature weight topographies ($-1000\text{ to }0\text{ ms}$).}
+\label{fig:fig5}
+\end{figure}
+
+\subsubsection*{Alpha Functional Connectivity}
+Among the functional connectivity metrics, only Laplacian amplitude envelope correlation significantly predicted response errors at a single isolated time window ($\statSVRCorrLeftSigMs{}$ pre-stimulus on non-informative cue trials with left targets; Figure~\ref{fig:fig6}A; Figure~\ref{fig:fig7}C). No individual pairwise electrode connections survived $t_{\max}$ multiple comparison correction either at $\statSVRCorrLeftSigMs{}$ or across the full pre-stimulus epoch (Figure~\ref{fig:fig6}B).
+
+% ==============================================================================
+% FIGURE 6 (Embedded in text per Cerebral Cortex guidelines)
+% ==============================================================================
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.98\textwidth]{\figPathSix}
+\caption{\textbf{Spatiotemporal SVR prediction and feature weight analysis for inter-electrode alpha functional connectivity measures.} \textbf{(A)} Time courses of SVR prediction accuracy (Fisher-$Z$ correlation $r_z$) across pairwise electrode connections for non-informative and informative cues subdivided by target side. The green shaded bar marks the single significant prediction window for amplitude envelope correlation ($\statSVRCorrLeftSigMs{}$ on non-informative left-target trials; $p < 0.05$, $t_{\max}$ corrected). \textbf{(B)} Epoch-averaged pairwise feature weight topographies ($|z| > 0.30$).}
+\label{fig:fig6}
+\end{figure}
+
+% ==============================================================================
+% FIGURE 7 (NEW SUMMARY FIGURE FOR REVIEWER 2)
+% ==============================================================================
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.98\textwidth]{\figPathSeven}
+\caption{\rev{\textbf{Summary comparison of MVPA classification and regression effectiveness across all 10 pre-stimulus EEG metrics.} \textbf{(A)} Peak SVM classification accuracy ($\pm 1\text{ SEM}$) distinguishing informative vs.\ non-informative spatial cues across the $-1000\text{ to }0\text{ ms}$ pre-stimulus interval for left targets (blue) and right targets (red). The vertical dashed line denotes 50\% theoretical chance; asterisks ($*$) denote metrics exhibiting at least one $t_{\max}$-corrected significant decoding window ($p < 0.05$). \textbf{(B)} Percentage of pre-stimulus time windows reaching statistical significance ($p < 0.05$, $t_{\max}$ corrected) in the SVM cue classification analysis, highlighting the sustained decodability of instantaneous alpha amplitude ($\statSVMAlphaPctSigRange{}$ of the epoch) compared with transient single-window effects in $\text{MVL}_{\text{\"Ozkurt}}$ ($\statSVMMVLPctSigRange{}$) and wPLI ($\statSVMwPLIPctSigRange{}$). \textbf{(C)} Peak SVR prediction accuracy (Fisher-$Z$ transformed correlation $r_z \pm 1\text{ SEM}$) for continuous single-trial response errors across non-informative (magenta) and informative (blue) cue trials.}}
+\label{fig:fig7}
+\end{figure}
+
+% ==============================================================================
+% DISCUSSION
+% ==============================================================================
+\section*{Discussion}
+\revsection{Discussion --- Expanded to address all 5 points of Reviewer 1 and all points of Reviewer 2}
+
+In the current study, we applied time-resolved multivariate pattern analysis (MVPA) to compare how effectively pre-stimulus alpha amplitude, local alpha--gamma cross-frequency coupling (CFC), and inter-electrode alpha functional connectivity classify covert visuospatial attention states and predict trial-by-trial orientation perception errors. \rev{In accordance with the baseline sensory excitability model (BSEM; Samaha et al. 2020), linear SVM classifiers trained on spatiotemporal patterns of instantaneous alpha amplitude reliably discriminated trials with covert spatial attention (informative cues) from trials without covert spatial attention (non-informative cues) throughout the $1000\text{ ms}$ interval prior to target onset ($\statSVMAlphaPctSigRange{}$ of pre-stimulus time windows; Figure~\ref{fig:fig7}A--B). Furthermore, consistent with the BSEM's prediction that pre-stimulus alpha fluctuations shift baseline sensory excitability (affecting signal and noise distributions equally) without altering objective feature discrimination precision (Samaha et al. 2017, 2020; Iemi and Busch 2018), pre-stimulus alpha amplitude did not predict trial-by-trial orientation response errors on informative cue trials and exceeded chance at only a single isolated time point ($\statSVRAlphaRightSigMs{}$) on non-informative right-target trials.}
+
+\subsection*{What the Current MVPA Comparison Adds to the Literature and Signal-to-Noise Considerations}
+\rev{Although univariate reductions in posterior alpha power following informative spatial cues are well established (Klimesch et al. 2007; Foxe and Snyder 2011; Mathewson et al. 2011), the primary contribution of the present study is the systematic, head-to-head multivariate benchmarking of local alpha amplitude against nine widely used local alpha--gamma CFC and inter-electrode alpha functional connectivity estimators within the exact same participants, task epochs, and cross-validated decoding pipeline (Figure~\ref{fig:fig7}). Theoretical accounts such as the OPR model (Zazio et al. 2020) and network synchronization frameworks (Sadaghiani and Kleinschmidt 2016) propose that alpha amplitude is merely a macroscopic proxy for local phase--amplitude coupling or long-range phase synchronization. By testing these representations side by side, our results demonstrate that at the macroscopic scalp EEG level, single-trial spatiotemporal alpha amplitude carries substantially more robust and temporally sustained information about covert attentional deployment than either local low-gamma CFC or pairwise sensor-level alpha connectivity.}
+
+\rev{At the same time, an important methodological caveat concerns differences in signal-to-noise ratio (SNR) across these EEG metrics. Instantaneous alpha amplitude is a first-order narrowband envelope estimate of the dominant human scalp rhythm and therefore enjoys a high single-trial SNR. By contrast, cross-frequency coupling and functional connectivity are higher-order relational statistics that depend on accurate simultaneous estimation of fast low-amplitude gamma envelopes ($30\text{--}45\text{ Hz}$, which are susceptible to cranial attenuation and muscle noise) or pairwise phase differences within short sliding windows ($250\text{--}375\text{ ms}$). Consequently, single-trial estimates of CFC and functional connectivity inherently exhibit lower SNR and higher estimation variance than alpha amplitude (Aru et al. 2015; Bastos and Schoffelen 2016; H\"ulsemann et al. 2019). Differences in MVPA decoding accuracy between alpha amplitude and CFC/connectivity metrics may therefore reflect both genuine differences in underlying neural coding and differences in single-trial estimator SNR at the scalp. Moreover, because $t_{\max}$ permutation testing was applied across time points within each metric separately, the isolated single-window decoding spikes observed for $\text{MVL}_{\text{\"Ozkurt}}$ (Figure~\ref{fig:fig3}A), wPLI (Figure~\ref{fig:fig4}A), and SVR error prediction (Figures~\ref{fig:fig5}A and \ref{fig:fig6}A) would not survive an additional Bonferroni correction across all 10 tested metrics and should be interpreted with caution.}
+
+\subsection*{Task Demands, Continuous Motor Reproduction, and Visual Field Asymmetry}
+\rev{A second important consideration in interpreting the weak SVR prediction of trial-by-trial behavioral errors across all pre-stimulus EEG metrics is the nature of our continuous orientation reproduction task. Most prior studies linking pre-stimulus alpha oscillations to perceptual outcomes have employed simple near-threshold yes/no detection tasks or two-alternative forced-choice (2-AFC) discrimination tasks (e.g., Samaha et al. 2017; Iemi and Busch 2018), which isolate binary perceptual decisions with minimal post-perceptual or motor variance. In our task, participants used a computer mouse during a self-paced response period (following a $\statPostMaskBlankMs{}$ post-mask delay) to continuously rotate a central needle across $360^\circ$ to reproduce the perceived target angle. Consequently, single-trial orientation response errors reflect not only initial early visual encoding precision, but also short-term visual working memory maintenance across the mask and delay interval, visuomotor transformation, and fine mouse-control motor variance. Because pre-stimulus cortical oscillations primarily modulate early sensory excitability around target onset, downstream working memory and motor execution variance likely diluted the trial-by-trial correlation between pre-stimulus EEG features and final continuous response error.}
+
+\rev{The behavioral results also revealed a striking visual field asymmetry in absolute response error (Figure~\ref{fig:fig2}A): orientation reproduction errors were significantly larger for left-hemifield targets than for right-hemifield targets, and informative spatial cues significantly reduced error magnitude on the left side while right-side performance remained near a floor of $\sim \statRightSideFloorDeg{}$ regardless of cueing. Two complementary factors may account for this asymmetry. First, whereas rapid target detection and coarse spatial localization often exhibit a left-visual-field (right-hemisphere) advantage (pseudo-neglect; Benwell et al. 2018), fine categorical or metric spatial judgments and visuomotor coordination with the dominant right hand (all $\statNIncluded{}$ participants were right-handed and controlled the mouse with their right hand) frequently show a right-visual-field advantage due to more direct intra-hemispheric sensorimotor integration within the left hemisphere. Second, because the preliminary detection staircase adjusted target luminance pooled across visual hemifields rather than separately for left and right targets, a right-visual-field sensitivity advantage placed right-hemifield targets closer to ceiling precision even on non-informative cue trials, leaving greater room for top-down covert attention to improve perceptual precision on the more challenging left-hemifield trials.}
+
+\subsection*{Implications for the OPR Model and Electrophysiological Scope of Scalp EEG}
+\rev{Although our findings favor the BSEM over the OPR model (Zazio et al. 2020) for scalp EEG decoding, they do not rule out alpha--gamma phase--amplitude coupling at the cortical microcircuit level. Our CFC analysis examined low-gamma oscillations ($30\text{--}45\text{ Hz}$, bounded by our $50\text{ Hz}$ low-pass filter), whereas many seminal demonstrations of phase--amplitude coupling in visual cortex involve broadband high-gamma activity ($80\text{--}150\text{ Hz}$). For example, using invasive subdural electrocorticography (ECoG), Voytek (2010) demonstrated that phase--amplitude coupling in posterior visual cortex shifts from theta--high-gamma ($80\text{--}150\text{ Hz}$) to alpha--high-gamma coupling during visual tasks. Importantly, high-gamma coupling can also be detected non-invasively from outside the head when using magnetoencephalography (MEG) in paradigms with high trial counts or strong sensory drive: Bonnefond and Jensen (2015) recorded MEG and demonstrated that alpha phase coupled with $80\text{--}120\text{ Hz}$ high-gamma power in visual sensory regions during an anticipatory pre-distractor period. Compared with ECoG and MEG, non-invasive scalp EEG is more heavily affected by spatial smearing across the skull and scalp and by cranial myogenic artifacts above $50\text{ Hz}$, which lowers the single-trial SNR of high-frequency gamma bursts on short ($250\text{ ms}$) pre-stimulus windows. Future MVPA studies combining high-density MEG or source-reconstructed high-gamma estimates with longer cue--target intervals will be valuable to test whether single-trial alpha--high-gamma PAC predicts fine perceptual discrimination.}
+
+\subsection*{Spectral Parameterization and Connectivity Extensions}
+It is also worth noting that while our narrowband alpha filters were centered on each participant's FOOOF-parameterized individual alpha peak frequency (adjusted for the $1/f$ background), the time-resolved Hilbert envelopes submitted to MVPA were extracted from the bandpass-filtered time series because standard spectral parameterization requires frequency-domain windows too long for millisecond-resolved decoding (Donoghue et al. 2020). Nevertheless, because neither the $1/f$ offset nor the $1/f$ exponent varied across cue or target conditions, our classification results cannot be attributed to broadband $1/f$ shifts.
+
+Finally, the present study focused on the alpha band ($8\text{--}14\text{ Hz}$) and undirected functional connectivity metrics (wPLI, iCOH, PLV, and envelope correlation). Growing evidence indicates that theta oscillations ($4\text{--}7\text{ Hz}$) and directed frontoparietal--occipital interactions (e.g., Granger causality and phase transfer entropy) also coordinate rhythmic attentional sampling (Cohen and van Gaal 2013; Clayton et al. 2015; Landau et al. 2015; Bastos and Schoffelen 2016; Fiebelkorn et al. 2018; O'Neill et al. 2018; Fiebelkorn and Kastner 2019; Yuan et al. 2021; Cao et al. 2022; Sadaghiani et al. 2022). Extending our multivariate benchmarking framework to longer cue--target intervals that accommodate low-frequency theta cycles and directed effective connectivity estimators represents a promising avenue for future research.
+
+\subsection*{Summary}
+Overall, our multivariate comparison provides stronger support for the baseline sensory excitability model (BSEM; Samaha et al. 2020) than for the oscillation-based probability of response (OPR) model (Zazio et al. 2020) at the scalp EEG level: pre-stimulus spatiotemporal alpha amplitude robustly and sustainably decodes the deployment of covert visuospatial attention across the cue--target interval, yet does not reliably predict trial-by-trial orientation reproduction precision. At the same time, consideration of single-trial estimator SNR, high-gamma attenuation in scalp EEG, and continuous motor response variance highlights boundary conditions that future multimodal and invasive recordings can directly address.
+
+% ==============================================================================
+% DECLARATIONS & ACKNOWLEDGEMENTS
+% ==============================================================================
+\section*{Acknowledgements}
+This work was supported by start-up funds from the Faculty of Science and a Natural Sciences and Engineering Research Council of Canada (NSERC) Discovery Grant (\#RES0024267) awarded to Kyle E. Mathewson. The authors thank Michael Calaresu, Jenny Le, and David Lam for assistance with data collection, and Daniel Robles and Jonathan Kuziek for feedback on data analysis.
+
+\section*{Conflict of Interest}
+The authors declare no conflicts of interest that could be perceived as prejudicing the impartiality of the research reported.
+
+\section*{Author Contributions}
+KEM and SSS conceived and designed the experiment. SSS collected and analyzed the data. KEM and AF facilitated results interpretation and machine learning methodology. SSS wrote the first draft of the manuscript. SSS, AF, and KEM revised and edited the manuscript.
+
+\section*{Data Accessibility}
+The raw behavioral and EEG datasets supporting the findings of this study are openly available on the Open Science Framework at \url{https://osf.io/u6fgm/}. Scripts to reproduce all tasks, analyses, figures, and the end-to-end manuscript pipeline are openly available on GitHub at \url{https://github.com/APPLabUofA/CuedOrientTask_paper}, \url{https://github.com/APPLabUofA/MVPA_CuedOrientTask_paper}, and \url{https://github.com/APPLabUofA/OrientExoML}.
+
+\newpage
+
+% ==============================================================================
+% REFERENCES (Formatted strictly in Cerebral Cortex style per Decision Letter:
+% Author SP, Author DJ, Author RT. 2007. Title of paper. Cereb Cortex. 8:123-154.)
+% ==============================================================================
+\section*{References}
+\revsection{References --- Formatted strictly to Cerebral Cortex journal style (Editor-in-Chief request)}
+\begin{singlespace}
+\small
+\setlength{\parindent}{-0.25in}
+\setlength{\leftskip}{0.25in}
+\setlength{\parskip}{6pt}
+
+Aru J, Aru J, Priesemann V, Wibral M, Lana L, Pipa G, Singer W, Vicente R. 2015. Untangling cross-frequency coupling in neuroscience. Curr Opin Neurobiol. 31:51--61.
+
+Bastos AM, Schoffelen JM. 2016. A tutorial review of functional connectivity analysis methods and their interpretational pitfalls. Front Syst Neurosci. 9:175.
+
+Ben-Hur A, Weston J. 2010. A user's guide to support vector machines. In: Carugo O, Eisenhaber F, editors. Data mining techniques for the life sciences. Totowa (NJ): Humana Press. p. 223--239.
+
+Benjamini Y, Yekutieli D. 2001. The control of the false discovery rate in multiple testing under dependency. Ann Stat. 29:1165--1188.
+
+Benwell CSY, Keitel C, Harvey M, Gross J, Thut G. 2018. Trial-by-trial co-variation of pre-stimulus EEG alpha power and visuospatial bias reflects a mixture of stochastic and deterministic effects. Eur J Neurosci. 48:2566--2584.
+
+Berger H. 1929. \"Uber das Elektrenkephalogramm des Menschen. Arch Psychiatr Nervenkr. 87:527--570.
+
+Bishop CM. 2006. Pattern recognition and machine learning. New York (NY): Springer.
+
+Blair RC, Karniski W. 1993. An alternative method for significance testing of waveform difference potentials. Psychophysiology. 30:518--524.
+
+Bode S, Feuerriegel D, Bennett D, Alday PM. 2019. The Decision Decoding ToolBOX (DDTBOX) -- a multivariate pattern analysis toolbox for event-related potentials. Neuroinformatics. 17:27--42.
+
+Bode S, Feuerriegel D, Schubert E, Hogendoorn H. 2021. Decoding continuous variables from EEG data using linear support vector regression (SVR) analysis with the Decision Decoding Toolbox (DDTBOX). bioRxiv. doi:10.1101/2021.04.26.441542.
+
+Bonnefond M, Jensen O. 2015. Gamma activity coupled to alpha phase as a mechanism for top-down controlled gating. PLoS One. 10:e0128667.
+
+Brainard DH. 1997. The Psychophysics Toolbox. Spat Vis. 10:433--436.
+
+Bruns A, Eckhorn R. 2004. Task-related coupling from high- to low-frequency signals among visual cortical areas in human subdural recordings. Int J Psychophysiol. 51:97--116.
+
+Canolty RT, Edwards E, Dalal SS, Soltani M, Nagarajan SS, Kirsch HE, Berger MS, Barbaro NM, Knight RT. 2006. High gamma power is phase-locked to theta oscillations in human neocortex. Science. 313:1626--1628.
+
+Cao J, Zhao Y, Shan X, Wei HL, Guo Y, Chen L, Erkoyuncu JA, Sarrigiannis PG. 2022. Brain functional and effective connectivity based on electroencephalography recordings: a review. Hum Brain Mapp. 43:860--879.
+
+Chang CC, Lin CJ. 2011. LIBSVM: a library for support vector machines. ACM Trans Intell Syst Technol. 2:1--27.
+
+Chaumon M, Busch NA. 2014. Prestimulus neural oscillations inhibit visual perception via modulation of response gain. J Cogn Neurosci. 26:2514--2529.
+
+Clayton MS, Yeung N, Cohen Kadosh R. 2015. The roles of cortical oscillations in sustained attention. Trends Cogn Sci. 19:188--195.
+
+Cohen MX. 2008. Assessing transient cross-frequency coupling in EEG data. J Neurosci Methods. 168:494--499.
+
+Cohen MX. 2014. Analyzing neural time series data: theory and practice. Cambridge (MA): MIT Press.
+
+Cohen MX. 2015. Effects of time lag and frequency matching on phase-based connectivity. J Neurosci Methods. 250:137--146.
+
+Cohen MX, van Gaal S. 2013. Dynamic interactions between large-scale brain networks predict behavioral adaptation after perceptual errors. Cereb Cortex. 23:1061--1072.
+
+Davoudi S, Ahmadi A, Daliri MR. 2020. Frequency--amplitude coupling: a new approach for decoding of attended features in covert visual attention task. Neural Comput Appl. 33:3487--3502.
+
+de Graaf TA, Thomson A, Janssens SEW, van Bree S, ten Oever S, Sack AT. 2020. Does alpha phase modulate visual target detection? Three experiments with tACS-phase-based stimulus presentation. Eur J Neurosci. 51:2299--2313.
+
+Delorme A, Makeig S. 2004. EEGLAB: an open source toolbox for analysis of single-trial EEG dynamics including independent component analysis. J Neurosci Methods. 134:9--21.
+
+Doesburg SM, Bedo N, Ward LM. 2016. Top-down alpha oscillatory network interactions during visuospatial attention orienting. NeuroImage. 132:512--519.
+
+Donoghue T, Haller M, Peterson EJ, Varma P, Sebastian P, Gao R, Noto T, Lara AH, Wallis JD, Knight RT, Shestyuk A, Voytek B. 2020. Parameterizing neural power spectra into periodic and aperiodic components. Nat Neurosci. 23:1655--1665.
+
+Fiebelkorn IC, Kastner S. 2019. A rhythmic theory of attention. Trends Cogn Sci. 23:87--101.
+
+Fiebelkorn IC, Pinsk MA, Kastner S. 2018. A dynamic interplay within the frontoparietal network underlies rhythmic spatial attention. Neuron. 99:842--853.
+
+Fields EC. 2017. Factorial Mass Univariate ERP Toolbox [software]. Available from: \url{https://github.com/ericcfields/FMUT}.
+
+Fields EC, Kuperberg GR. 2019. Having your cake and eating it too: flexibility and power with mass univariate statistics for ERP data. Psychophysiology. 57:e13468.
+
+Foxe JJ, Snyder AC. 2011. The role of alpha-band brain oscillations as a sensory suppression mechanism during selective attention. Front Psychol. 2:154.
+
+Frey JN, Ruhnau P, Weisz N. 2015. Not so different after all: the same oscillatory processes support different types of attention. Brain Res. 1626:183--197.
+
+Garc\'ia-P\'erez MA. 1998. Forced-choice staircases with fixed step sizes: asymptotic and small-sample properties. Vision Res. 38:1861--1881.
+
+Gootjes L, Bouma A, Van Strien JW, Scheltens P, Stam CJ. 2006. Attention modulates hemispheric differences in functional connectivity: evidence from MEG recordings. NeuroImage. 30:245--253.
+
+Gratton G, Coles MGH, Donchin E. 1983. A new method for off-line removal of ocular artifact. Electroencephalogr Clin Neurophysiol. 55:468--484.
+
+Grootswagers T, Wardle SG, Carlson TA. 2017. Decoding dynamic brain patterns from evoked responses: a tutorial on multivariate pattern analysis applied to time series neuroimaging data. J Cogn Neurosci. 29:677--697.
+
+Groppe DM, Urbach TP, Kutas M. 2011. Mass univariate analysis of event-related brain potentials/fields I: a critical tutorial review. Psychophysiology. 48:1711--1725.
+
+Hakim N, Adam KCS, Gunseli E, Awh E, Vogel EK. 2019. Dissecting the neural focus of attention reveals distinct processes for spatial attention and object-based storage in visual working memory. Psychol Sci. 30:526--540.
+
+Hamidi M. 2009. Repetitive transcranial magnetic stimulation affects behavior by biasing endogenous cortical oscillations. Front Integr Neurosci. 3:14.
+
+Haufe S, Meinecke F, G\"orgen K, D\"ahne S, Haynes JD, Blankertz B, Bie\ss{}mann F. 2014. On the interpretation of weight vectors of linear models in multivariate neuroimaging. NeuroImage. 87:96--110.
+
+Hebart MN, Baker CI. 2018. Deconstructing multivariate decoding for the study of brain function. NeuroImage. 180:4--18.
+
+Herring JD, Esterer S, Marshall TR, Jensen O, Bergmann TO. 2019. Low-frequency alternating current stimulation rhythmically suppresses gamma-band oscillations and impairs perceptual performance. NeuroImage. 184:440--449.
+
+Hogendoorn H. 2015. From sensation to perception: using multivariate classification of visual illusions to identify neural correlates of conscious awareness in space and time. Perception. 44:71--78.
+
+Hong X, Sun J, Bengson JJ, Mangun GR, Tong S. 2015. Normal aging selectively diminishes alpha lateralization in visual spatial attention. NeuroImage. 106:353--363.
+
+H\"ulsemann MJ, Naumann E, Rasch B. 2019. Quantification of phase-amplitude coupling in neuronal oscillations: comparison of phase-locking value, mean vector length, modulation index, and generalized-linear-modeling-cross-frequency-coupling. Front Neurosci. 13:573.
+
+Iemi L, Busch NA. 2018. Moment-to-moment fluctuations in neuronal excitability bias subjective perception rather than strategic decision-making. eNeuro. 5:ENEURO.0430-17.2018.
+
+Jensen O, Colgin LL. 2007. Cross-frequency coupling between neuronal oscillations. Trends Cogn Sci. 11:267--269.
+
+Jensen O, Gips B, Bergmann TO, Bonnefond M. 2014. Temporal coding organized by coupled alpha and gamma oscillations prioritize visual processing. Trends Neurosci. 37:357--369.
+
+Jensen O, Mazaheri A. 2010. Shaping functional architecture by oscillatory alpha activity: gating by inhibition. Front Hum Neurosci. 4:186.
+
+Kayser J, Tenke CE. 2015. Issues and considerations for using the scalp surface Laplacian in EEG/ERP research: a tutorial review. Int J Psychophysiol. 97:189--209.
+
+Kingdom FAA, Prins N. 2016. Psychophysics: a practical introduction. 2nd ed. San Diego (CA): Academic Press. p. 119--148.
+
+Klimesch W. 2012. Alpha-band oscillations, attention, and controlled access to stored information. Trends Cogn Sci. 16:606--617.
+
+Klimesch W, Sauseng P, Hanslmayr S. 2007. EEG alpha oscillations: the inhibition--timing hypothesis. Brain Res Rev. 53:63--88.
+
+Kuntzelman KM, Williams JM, Lim PC, Samal A, Rao PK, Johnson MR. 2021. Deep-learning-based multivariate pattern analysis (dMVPA): a tutorial and a toolbox. Front Hum Neurosci. 15:638052.
+
+Lachaux JP, Rodriguez E, Martinerie J, Varela FJ. 1999. Measuring phase synchrony in brain signals. Hum Brain Mapp. 8:194--208.
+
+Landau AN, Schreyer HM, Van Pelt S, Fries P. 2015. Distributed attention is implemented through theta-rhythmic gamma modulation. Curr Biol. 25:2332--2337.
+
+Luck SJ. 2014. An introduction to the event-related potential technique. 2nd ed. Cambridge (MA): MIT Press.
+
+Martinez-Cancino R, Delorme A, Kreutz-Delgado K, Makeig S. 2020. Computing phase amplitude coupling in EEGLAB: PACTools. In: Proceedings of the IEEE 20th International Conference on Bioinformatics and Bioengineering (BIBE); 2020 Oct 26--28. IEEE. p. 387--394.
+
+Mathewson KE, Lleras A, Beck DM, Fabiani M, Ro T, Gratton G. 2011. Pulsed out of awareness: EEG alpha oscillations represent a pulsed-inhibition of ongoing cortical processing. Front Psychol. 2:99.
+
+Mathewson KE, Prudhomme C, Fabiani M, Beck DM, Lleras A, Gratton G. 2012. Making waves in the stream of consciousness: entraining oscillations in EEG alpha and fluctuations in visual awareness with rhythmic visual stimulation. J Cogn Neurosci. 24:2321--2333.
+
+Ni J, Wunderle T, Lewis CM, Desimone R, Diester I, Fries P. 2016. Gamma-rhythmic gain modulation. Neuron. 92:240--251.
+
+Nolte G, Bai O, Wheaton L, Mari Z, Vorbach S, Hallett M. 2004. Identifying true brain interaction from EEG data using the imaginary part of coherency. Clin Neurophysiol. 115:2292--2307.
+
+O'Neill GC, Tewarie P, Vidaurre D, Liuzzi L, Woolrich MW, Brookes MJ. 2018. Dynamics of large-scale electrophysiological networks: a technical review. NeuroImage. 180:559--576.
+
+Okazaki YO, Mizuno Y, Kitajo K. 2020. Probing dynamical cortical gating of attention with concurrent TMS-EEG. Sci Rep. 10:4959.
+
+Oostenveld R, Fries P, Maris E, Schoffelen JM. 2011. FieldTrip: open source software for advanced analysis of MEG, EEG, and invasive electrophysiological data. Comput Intell Neurosci. 2011:156869.
+
+\"Ozkurt TE, Schnitzler A. 2011. A critical note on the definition of phase--amplitude cross-frequency coupling. J Neurosci Methods. 201:438--443.
+
+Pelli DG. 1997. The VideoToolbox software for visual psychophysics: transforming numbers into movies. Spat Vis. 10:437--442.
+
+Penny WD, Duzel E, Miller KJ, Ojemann JG. 2008. Testing for nested oscillation. J Neurosci Methods. 174:50--61.
+
+Perrin F, Pernier J, Bertrand O, Echallier JF. 1989. Spherical splines for scalp potential and current density mapping. Electroencephalogr Clin Neurophysiol. 72:184--187.
+
+Pezoulas VC, Athanasiou A, Nolte G, Zervakis M, Fratini A, Fotiadis DI, Klados MA. 2018. FCLAB: an EEGLAB module for performing functional connectivity analysis on single-subject EEG data. In: IEEE EMBS International Conference on Biomedical \& Health Informatics (BHI); 2018 Mar 4--7. IEEE. p. 96--99.
+
+Plomp G, Hervais-Adelman A, Astolfi L, Michel CM. 2015. Early recurrence and ongoing parietal driving during elementary visual processing. Sci Rep. 5:18733.
+
+Pritchett DL, Siegle JH, Deister CA, Moore CI. 2015. For things needing your attention: the role of neocortical gamma in sensory perception. Curr Opin Neurobiol. 31:254--263.
+
+Raybaut P. 2009. Spyder-documentation [software]. Available from: \url{https://www.spyder-ide.org}.
+
+Ritchie JB, Kaplan DM, Klein C. 2019. Decoding the brain: neural representation and the limits of multivariate pattern analysis in cognitive neuroscience. Br J Philos Sci. 70:581--607.
+
+Sadaghiani S, Brookes MJ, Baillet S. 2022. Connectomics of human electrophysiology. NeuroImage. 247:118788.
+
+Sadaghiani S, Kleinschmidt A. 2016. Brain networks and $\alpha$-oscillations: structural and functional foundations of cognitive control. Trends Cogn Sci. 20:805--817.
+
+Samaha J, Iemi L, Haegens S, Busch NA. 2020. Spontaneous brain oscillations and perceptual decision-making. Trends Cogn Sci. 24:639--653.
+
+Samaha J, Iemi L, Postle BR. 2017. Prestimulus alpha-band power biases visual discrimination confidence, but not accuracy. Conscious Cogn. 54:47--55.
+
+Samuel IBH, Wang C, Hu Z, Ding M. 2018. The frequency of alpha oscillations: task-dependent modulation and its functional significance. NeuroImage. 183:897--906.
+
+Seymour RA, Rippon G, Kessler K. 2017. The detection of phase amplitude coupling during sensory processing. Front Neurosci. 11:487.
+
+Sheldon SS, Mathewson KE. 2021. To see, not to see or to see poorly: perceptual quality and guess rate as a function of electroencephalography (EEG) brain activity in an orientation perception task. Eur J Neurosci. 55:3154--3177.
+
+Tort ABL, Komorowski R, Eichenbaum H, Kopell N. 2010. Measuring phase-amplitude coupling between neuronal oscillations of different frequencies. J Neurophysiol. 104:1195--1210.
+
+Tort ABL, Kramer MA, Thorn C, Gibson DJ, Kubota Y, Graybiel AM, Kopell NJ. 2008. Dynamic cross-frequency couplings of local field potential oscillations in rat striatum and hippocampus during performance of a T-maze task. Proc Natl Acad Sci U S A. 105:20517--20522.
+
+VanRullen R. 2016. Perceptual cycles. Trends Cogn Sci. 20:723--735.
+
+Vapnik V. 1996. The nature of statistical learning theory. New York (NY): Springer.
+
+Vinck M, Oostenveld R, van Wingerden M, Battaglia F, Pennartz CMA. 2011. An improved index of phase-synchronization for electrophysiological data in the presence of volume-conduction, noise and sample-size bias. NeuroImage. 55:1548--1565.
+
+Voytek B. 2010. Shifts in gamma phase--amplitude coupling frequency from theta to alpha over posterior cortex during visual tasks. Front Hum Neurosci. 4:191.
+
+Yuan Z, Chen H, Ding Z, Li Z, Song Y, Li X. 2021. The modulating effect of top-down attention on the optimal pre-target onset oscillatory states of bottom-up attention. Neuroscience. 466:186--195.
+
+Zazio A, Schreiber M, Miniussi C, Bortoletto M. 2020. Modelling the effects of ongoing alpha activity on visual perception: the oscillation-based probability of response. Neurosci Biobehav Rev. 112:242--253.
+
+\end{singlespace}
+
+\end{document}

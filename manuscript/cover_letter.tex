@@ -1,0 +1,79 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage[margin=1.0in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage[colorlinks=true,linkcolor=blue!60!black,urlcolor=blue!60!black]{hyperref}
+
+\input{generated_stats.tex}
+
+\pagestyle{empty}
+
+\begin{document}
+
+% University of Alberta Header Logo
+\noindent
+\includegraphics[height=1.15cm]{figures/coverletter_image3.png}
+
+\vspace{14pt}
+\noindent\today
+
+\vspace{10pt}
+\noindent
+Pasko Rakic, MD, PhD\\
+Editor-in-Chief, \textit{Cerebral Cortex}
+
+\vspace{10pt}
+\noindent
+\textbf{Re: Revised Manuscript Submission --- CerCor-2022-00354}\\
+\textit{``Connecting Covert Attention and Visual Perception to the Spatiotemporal Dynamics of Alpha Band Activity, Cross-Frequency Coupling (CFC), and Functional Connectivity using Multivariate Pattern Analysis (MVPA)''}
+
+\vspace{10pt}
+\noindent
+Dear Dr.\ Rakic,
+
+Please find enclosed our revised manuscript (\textbf{CerCor-2022-00354}), entitled \textit{``Connecting Covert Attention and Visual Perception to the Spatiotemporal Dynamics of Alpha Band Activity, Cross-Frequency Coupling (CFC), and Functional Connectivity using Multivariate Pattern Analysis (MVPA),''} by Sarah S.\ Sheldon, Alona Fyshe, and Kyle E.\ Mathewson, for reconsideration as an Original Research Report in \textit{Cerebral Cortex}.
+
+We would like to thank you and the two anonymous reviewers for your constructive feedback and for the opportunity to submit a revised version of our work. Our manuscript extends current knowledge about the spatiotemporal dynamics of pre-stimulus alpha ($8\text{--}14\text{ Hz}$) oscillatory activity and its role in visual perception and visuospatial attention. Using single-trial electroencephalography (EEG) recorded from $N = \statNIncluded{}$ participants performing a cued continuous orientation perception task, we compared the pre-stimulus spatiotemporal dynamics of local alpha amplitude, five local alpha--gamma cross-frequency coupling (CFC) estimators, and four inter-electrode alpha functional connectivity estimators using linear support vector machine (SVM) classification and linear support vector regression (SVR). We found that pre-stimulus alpha amplitude most consistently distinguished trials with covert spatial attention from trials without covert spatial attention across the $1000\text{ ms}$ cue--target interval, whereas none of the metrics reliably predicted trial-by-trial behavioral orientation reproduction errors---providing direct multivariate support for the baseline sensory excitability model (BSEM; Samaha et al.\ 2020).
+
+In accordance with the reviewers' comments and your editorial instructions, we have thoroughly revised the manuscript and figures:
+\begin{enumerate}
+    \item \textbf{Clarification of Study Novelty, SNR Considerations, Task Demands, and Statistical Error Control (Reviewer 1):} We expanded the Discussion to explicitly articulate what our head-to-head multivariate benchmark of 10 pre-stimulus oscillatory metrics adds to the literature, how differences in single-trial signal-to-noise ratio (SNR) between first-order amplitude and higher-order CFC/connectivity estimators affect decoding sensitivity, how continuous mouse-driven orientation reproduction introduces working-memory and visuomotor variance compared with binary detection/2-AFC tasks, why right-handed participants exhibit a visual field asymmetry in orientation error magnitude, and how within-analysis $t_{\max}$ permutation testing interacts with experiment-wise Type I error control across metrics.
+    \item \textbf{New MVPA Summary Comparison Figure (Figure 7) and Enhanced Figure Readability (Reviewer 2):} As suggested by Reviewer 2, we added a new three-panel summary figure (\textbf{Figure 7}) directly comparing peak SVM classification accuracy, temporal extent of significant decoding, and peak SVR error prediction across all 10 EEG metrics. We also divided \textbf{Figure 2} into explicit \textbf{A} and \textbf{B} panels, aligned the text order of absolute and signed response errors with Figure 2A--B, and configured our automated figure pipeline to enforce legible axis typography, concise abbreviations (\texttt{MI}, \texttt{Accuracy}, $r_z$), and $200\text{ ms}$ time-tick spacing across Figures 3--6.
+    \item \textbf{Methodological and Electrophysiological Precision (Reviewer 2):} We revised the Abstract, restructured the Introduction to clearly separate background literature from our hypotheses, clarified all methodological queries (post-mask fixation display, self-paced breaks, signed vs.\ absolute response error definitions, $F_{\max}$ permutation rationale, HEOG saccade rejection criteria, FOOOF $1/f$ vs.\ peak decomposition, individual alpha peak frequency summary statistics [$M = \statIAFGrandMeanHz{}, \text{SD} = \statIAFGrandSDHz{}$], local CFC scope and sideband-preserving gamma filter bandwidths), and corrected the Discussion of invasive ECoG (Voytek 2010) versus non-invasive MEG (Bonnefond and Jensen 2015) high-gamma recordings.
+    \item \textbf{Journal Formatting Compliance:} All new and revised sections are clearly highlighted in the manuscript, all tables and figures with captions are embedded directly at their relevant locations within a single double-spaced document, and all references have been formatted strictly to \textit{Cerebral Cortex} style.
+\end{enumerate}
+
+A detailed point-by-point response to all reviewer comments is provided in the accompanying \textit{Response to Reviewers} document. All raw data (\url{https://osf.io/u6fgm/}) and end-to-end reproducible task, analysis, and manuscript generation scripts (\url{https://github.com/APPLabUofA/CuedOrientTask_paper}, \url{https://github.com/APPLabUofA/MVPA_CuedOrientTask_paper}, and \url{https://github.com/APPLabUofA/OrientExoML}) remain openly available.
+
+Thank you very much for your time and consideration.
+
+\vspace{12pt}
+\noindent
+Sincerely,
+
+\vspace{8pt}
+\begin{minipage}[t]{0.48\textwidth}
+\includegraphics[height=1.1cm]{figures/coverletter_image1.png}\\[4pt]
+\textbf{Kyle E.\ Mathewson, Ph.D.}\\
+Associate Professor of Cognitive Neuroscience\\
+Department of Psychology, Faculty of Science\\
+Neuroscience and Mental Health Institute\\
+University of Alberta
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+\includegraphics[height=1.1cm]{figures/coverletter_image2.png}\\[4pt]
+\textbf{Sarah S.\ Sheldon}\\
+Department of Psychology\\
+Faculty of Science\\
+University of Alberta\\
+\texttt{ssheldon@ualberta.ca}
+\end{minipage}
+
+\end{document}

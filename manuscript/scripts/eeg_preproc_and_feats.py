@@ -528,8 +528,9 @@ def compute_fc_numba(an_raw: np.ndarray, an_lap: np.ndarray, winSize: int = 375,
                     plv_im = 0.0
                     corr_sum = 0.0
                     cross_im = 0.0
-                    wpli_num = 0.0
-                    wpli_den = 0.0
+                    wpli_imagsum = 0.0
+                    wpli_imagsumW = 0.0
+                    wpli_debias = 0.0
                     for k in range(winSize):
                         t = st + k
                         u1 = u_lap[c1, tr, t]
@@ -541,14 +542,20 @@ def compute_fc_numba(an_raw: np.ndarray, an_lap: np.ndarray, winSize: int = 375,
                         z2 = an_raw[c2, tr, t]
                         cdi = z1.imag * z2.real - z1.real * z2.imag
                         cross_im += cdi
-                        wpli_num += cdi
-                        wpli_den += abs(cdi)
+                        wpli_imagsum += cdi
+                        wpli_imagsumW += abs(cdi)
+                        wpli_debias += cdi * cdi
 
                     plv_out[ij, pair_idx, tr] = np.sqrt(plv_re * plv_re + plv_im * plv_im) / winSize
                     corr_out[ij, pair_idx, tr] = corr_sum
                     denom_ic = np.sqrt(max(spec_diag[c1, tr] * spec_diag[c2, tr], 1e-30))
                     icoh_out[ij, pair_idx, tr] = abs(cross_im) / denom_ic
-                    wpli_out[ij, pair_idx, tr] = abs(wpli_num) / wpli_den if wpli_den > 1e-15 else 0.0
+                    denom_dwpli = wpli_imagsumW * wpli_imagsumW - wpli_debias
+                    wpli_out[ij, pair_idx, tr] = (
+                        (wpli_imagsum * wpli_imagsum - wpli_debias) / denom_dwpli
+                        if denom_dwpli > 1e-30
+                        else 0.0
+                    )
                 pair_idx += 1
 
     return plv_out, corr_out, icoh_out, wpli_out
@@ -807,7 +814,8 @@ def process_single_subject(subj_id: str) -> Dict[str, Any]:
     valid = valid[:n_min]
     position = position[:n_min]
 
-    # 6. Artifact Rejection 1: range [-1000, 1000] uV on channels 1..34
+    # 6. Pre-EMCP baseline subtraction (pop_rmbase(EEG, exp.epochbaseline) with exp.epochbaseline = [] in byTargets_ML_v1_Settings.mat) + Artifact Rejection 1: range [-1000, 1000] uV on channels 1..34
+    epochs -= np.mean(epochs, axis=1, keepdims=True)
     bad1 = np.any((epochs < -1000.0) | (epochs > 1000.0), axis=(0, 1))
     keep1 = ~bad1
     epochs, trigs, err_deg, valid, position = (
@@ -817,7 +825,8 @@ def process_single_subject(subj_id: str) -> Dict[str, Any]:
     # 7. Gratton EMCP Ocular Correction
     epochs = gratton_emcp_numpy(epochs, trigs, srate=1000.0)
 
-    # 8. Artifact Rejection 2: range [-500, 500] uV on channels 1..32 (0..31)
+    # 8. Post-EMCP baseline subtraction (pop_rmbase(EEG, exp.epochbaseline)) + Artifact Rejection 2: range [-500, 500] uV on channels 1..32 (0..31)
+    epochs -= np.mean(epochs, axis=1, keepdims=True)
     bad2 = np.any((epochs[:32, :, :] < -500.0) | (epochs[:32, :, :] > 500.0), axis=(0, 1))
     keep2 = ~bad2
     epochs, trigs, err_deg, valid, position = (

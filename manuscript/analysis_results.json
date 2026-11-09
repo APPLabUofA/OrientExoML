@@ -15,27 +15,27 @@
     "participants": {
       "status": "computed_from_raw_data",
       "source_script": "CuedOrientTask_paper/Analysis_Code/perm_rbANOVA_OrientExo.m",
-      "updated_at": "2026-11-05T20:39:21.072975+00:00"
+      "updated_at": "2026-11-09T19:31:18.880017+00:00"
     },
     "behavior": {
       "status": "computed_from_raw_data",
       "source_script": "CuedOrientTask_paper/Analysis_Code/perm_rbANOVA_OrientExo.m",
-      "updated_at": "2026-11-05T20:39:21.072975+00:00"
+      "updated_at": "2026-11-09T19:31:18.880017+00:00"
     },
     "fooof": {
       "status": "computed_from_raw_data",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "updated_at": "2026-11-05T22:54:26.292984+00:00"
+      "updated_at": "2026-11-09T20:06:52.947662+00:00"
     },
     "mvpa": {
       "status": "computed_from_raw_data",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "updated_at": "2026-11-05T22:54:28.950184+00:00"
+      "updated_at": "2026-11-09T20:06:55.826340+00:00"
     },
     "mvpa_summary_metrics": {
       "status": "computed_from_raw_data",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "updated_at": "2026-11-05T22:54:28.950184+00:00"
+      "updated_at": "2026-11-09T20:06:55.826340+00:00"
     }
   },
   "participants": {
@@ -113,17 +113,17 @@
     "min_peak_height": 0.22,
     "peak_threshold": 0.2,
     "alpha_bonferroni": 0.0125,
-    "offset_mean_crit_fmax": 15.4,
-    "exponent_mean_crit_fmax": 15.35,
+    "offset_mean_crit_fmax": 15.36,
+    "exponent_mean_crit_fmax": 15.31,
     "r2_mean_crit_fmax": 14.94,
-    "error_mean_crit_fmax": 16.76,
+    "error_mean_crit_fmax": 16.86,
     "iaf_grand_mean_hz": "10.6",
     "iaf_grand_sd_hz": "0.5",
     "iaf_range_hz": "9.6--11.4",
     "aperiodic_offset": {
-      "cue_validity_fmax_crit": 15.69,
-      "target_side_fmax_crit": 15.46,
-      "interaction_fmax_crit": 15.05,
+      "cue_validity_fmax_crit": 15.66,
+      "target_side_fmax_crit": 15.44,
+      "interaction_fmax_crit": 15.0,
       "non_informative_mean_log_power": 1.05,
       "non_informative_sd_log_power": 0.3,
       "informative_mean_log_power": 1.01,
@@ -155,21 +155,30 @@
     "fc_z_thresh_window": 0.45,
     "fc_z_thresh_epoch": 0.3,
     "svm_results": {
-      "alpha_pct_sig_range": "90\\%--96\\%",
-      "alpha_pct_sig_min": 90,
-      "alpha_left_sig_windows": "-1000 to -820 ms and -760 to -20 ms",
-      "alpha_right_sig_windows": "-1000 to -800 ms, -760 to -460 ms, -420 to -200 ms, -160 to -80 ms, and -20 ms",
-      "mvl_pct_sig_range": "8\\%--14\\%",
-      "mvl_left_sig_ms": "-875",
-      "mvl_right_sig_window_ms": "-785 to -770",
-      "mvl_right_sig_point_ms": "-380",
-      "wpli_pct_sig_range": "0\\%--8.3\\%",
-      "wpli_right_sig_ms": "-462.5"
+      "alpha_pct_sig_range": "34\\%--68\\%",
+      "alpha_pct_sig_min": 34,
+      "alpha_pct_sig_left": 68,
+      "alpha_pct_sig_right": 34,
+      "alpha_left_sig_windows": "-980 to -960 ms, -920 ms, -880 ms, -780 ms, -720 ms, -680 to -660 ms, -620 to -600 ms, -560 to -480 ms, -440 to -360 ms, -320 to -300 ms, -260 ms, and -220 to -20 ms",
+      "alpha_right_sig_windows": "-960 ms, -900 ms, -840 ms, -600 ms, -480 ms, -420 to -400 ms, -360 to -320 ms, -280 to -240 ms, -200 ms, -120 ms, and -80 to -60 ms",
+      "mvl_pct_sig_range": "6\\%",
+      "mvl_left_sig_windows": "-875 ms, -485 ms, and -230 ms",
+      "mvl_right_sig_windows": "-800 ms, -740 ms, and -275 ms",
+      "mi_pct_sig_range": "2\\%",
+      "mi_left_sig_windows": "-215 ms",
+      "mi_right_sig_windows": "-290 ms",
+      "glm_pct_sig_range": "0\\%--2\\%",
+      "glm_left_sig_windows": "none",
+      "glm_right_sig_windows": "-530 ms",
+      "wpli_pct_sig_range": "0\\%",
+      "wpli_right_sig_windows": "none"
     },
     "svr_results": {
-      "alpha_noninf_right_sig_ms": "-640",
-      "aac_noninf_left_sig_ms": "-200",
-      "corr_noninf_left_sig_ms": "-562.5"
+      "alpha_noninf_right_sig_windows": "none",
+      "aac_noninf_right_sig_windows": "-560 ms",
+      "mvl_noninf_right_sig_windows": "-245 ms",
+      "glm_inf_left_sig_windows": "-800 ms",
+      "corr_noninf_left_sig_windows": "none"
     }
   },
   "mvpa_summary_metrics": {
@@ -186,72 +195,72 @@
       "FC: iCOH"
     ],
     "svm_left_peak": [
-      56.3,
-      54.0,
+      56.6,
+      53.8,
       51.8,
+      53.0,
+      51.1,
+      53.3,
+      51.1,
+      51.5,
       52.8,
-      51.7,
-      52.9,
-      51.3,
-      51.7,
-      52.7,
-      51.2
+      50.8
     ],
     "svm_left_sem": [
-      1.0,
+      1.2,
       0.9,
-      1.0,
-      0.9,
-      0.7,
-      0.7,
-      0.8,
       0.9,
       0.8,
-      0.6
+      0.7,
+      1.1,
+      0.6,
+      0.7,
+      0.9,
+      0.5
     ],
     "svm_right_peak": [
-      55.3,
-      54.8,
-      51.7,
+      55.4,
+      54.3,
+      51.9,
       53.4,
-      52.1,
       53.0,
-      51.8,
-      51.1,
-      50.5,
-      51.2
+      53.4,
+      51.9,
+      51.0,
+      51.0,
+      50.9
     ],
     "svm_right_sem": [
-      1.0,
+      0.6,
+      0.9,
       0.8,
-      0.8,
-      0.8,
+      1.1,
+      0.9,
+      1.1,
       0.7,
       1.0,
-      0.7,
-      0.7,
-      0.8,
-      0.7
+      0.9,
+      0.8
     ],
     "svm_left_pct_sig": [
-      96.0,
-      8.0,
+      68.0,
+      6.0,
       0.0,
       2.0,
       0.0,
-      2.0,
       0.0,
-      8.3,
-      8.3,
+      0.0,
+      0.0,
+      0.0,
       0.0
     ],
     "svm_right_pct_sig": [
-      90.0,
-      14.0,
-      0.0,
-      4.0,
+      34.0,
+      6.0,
       0.0,
       2.0,
+      2.0,
+      0.0,
       0.0,
       0.0,
       0.0,
@@ -260,66 +269,66 @@
     "svm_left_sig_indices": [
       0,
       1,
-      3,
-      5,
-      7,
-      8
+      3
     ],
     "svm_right_sig_indices": [
       0,
       1,
       3,
-      5
+      4
     ],
     "svr_noninf_peak": [
-      0.088,
-      0.088,
+      0.052,
       0.081,
-      0.077,
-      0.16,
+      0.076,
+      0.08,
+      0.137,
       0.073,
-      0.099,
-      0.13,
-      0.061,
-      0.077
+      0.067,
+      0.104,
+      0.053,
+      0.061
     ],
     "svr_noninf_sem": [
-      0.046,
-      0.037,
-      0.049,
-      0.045,
-      0.036,
-      0.034,
-      0.045,
-      0.047,
-      0.046,
-      0.028
-    ],
-    "svr_inf_peak": [
-      0.054,
-      0.072,
-      0.063,
-      0.054,
-      0.08,
-      0.055,
+      0.048,
+      0.041,
       0.05,
-      0.053,
-      0.054,
-      0.038
-    ],
-    "svr_inf_sem": [
-      0.028,
-      0.03,
-      0.026,
-      0.031,
-      0.023,
-      0.025,
-      0.023,
-      0.032,
-      0.025,
+      0.056,
+      0.046,
+      0.045,
+      0.033,
+      0.046,
+      0.045,
       0.027
     ],
-    "svr_noninf_sig_indices": [],
+    "svr_inf_peak": [
+      0.059,
+      0.064,
+      0.06,
+      0.058,
+      0.065,
+      0.059,
+      0.054,
+      0.055,
+      0.055,
+      0.033
+    ],
+    "svr_inf_sem": [
+      0.022,
+      0.022,
+      0.025,
+      0.029,
+      0.023,
+      0.023,
+      0.03,
+      0.026,
+      0.026,
+      0.024
+    ],
+    "svr_noninf_sig_indices": [
+      1,
+      2
+    ],
     "svr_inf_sig_indices": [
       4
     ]
@@ -339,52 +348,52 @@
       "file": "figures/figure2_behavior.png",
       "status": "generated_from_analysis",
       "source_script": "manuscript/scripts/run_behavior_pipeline.py",
-      "sha256": "9e3e48d4b46110d42d8f3ce6ee7dafb17adb3e7ec9f3a2de80fd424fb6f7b218",
+      "sha256": "0af771d471a477d31bce3b3b18bca9562487e27f4867832d4f80a7495ae5f794",
       "description": "Empirical Figure 2 generated from N=28 single-trial behavioral datasets (OSF u6fgm)",
-      "updated_at": "2026-11-05T22:20:46.713810+00:00"
+      "updated_at": "2026-11-09T19:31:18.906833+00:00"
     },
     "figure3": {
       "id": "figure3",
       "file": "figures/figure3_svm_cfc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "7b785e2a50a613bcfc632c6aefa21bff874a2b947cc1c09c1fbad88b0b00d804",
+      "sha256": "b07783196bafe3aa8539d77ea5fc35ba6da0a0fe3b18f0954430d74a76f6cfad",
       "description": "Spatiotemporal SVM classification and feature weights for alpha amplitude and CFC measures",
-      "updated_at": "2026-11-05T22:54:27.039771+00:00"
+      "updated_at": "2026-11-09T20:06:53.757325+00:00"
     },
     "figure4": {
       "id": "figure4",
       "file": "figures/figure4_svm_fc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "ffb86f7a60d97bf7f64b5d415b809c62428c54f4d4902652e344232ac1f85caa",
+      "sha256": "1ea62305482bede8ee986b922cd0804caa43464f8663644249a98ab601c7aa45",
       "description": "Spatiotemporal SVM classification and feature weights for functional connectivity measures",
-      "updated_at": "2026-11-05T22:54:27.400717+00:00"
+      "updated_at": "2026-11-09T20:06:54.135413+00:00"
     },
     "figure5": {
       "id": "figure5",
       "file": "figures/figure5_svr_cfc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "7cb2009fffa85714bbabb4b587e8057e279e35140df5c1955f4f48f3762bbd8d",
+      "sha256": "c208967c3dc875769d75d1bf57804374a999e3c2ba2c8cf0e064f84aae9803e9",
       "description": "Spatiotemporal SVR prediction and feature weights for alpha amplitude and CFC measures",
-      "updated_at": "2026-11-05T22:54:28.362929+00:00"
+      "updated_at": "2026-11-09T20:06:55.187748+00:00"
     },
     "figure6": {
       "id": "figure6",
       "file": "figures/figure6_svr_fc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "a79b18d574f31ca93227de712df6e466959d0a08f6997e5210fdb1ce99784e6e",
+      "sha256": "88a6ba5594bfa4ce94b860903a7b6a34d9c72d628d371654fc16194ef1241908",
       "description": "Spatiotemporal SVR prediction and feature weights for functional connectivity measures",
-      "updated_at": "2026-11-05T22:54:28.921098+00:00"
+      "updated_at": "2026-11-09T20:06:55.796006+00:00"
     },
     "figure7": {
       "id": "figure7",
       "file": "figures/figure7_mvpa_summary.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "3feb0046f8a476dc624dc0558a4ec444cb625b8915bf6b5ee358d1f7febe4f9d",
+      "sha256": "ec882fc06ff9373139cc3bd8fbcb43deb33a813e0aa0619d3f01ec95534a5aaf",
       "description": "Summary comparison of MVPA classification and SVR prediction performance across all EEG metrics (Reviewer 2 request)"
     }
   }

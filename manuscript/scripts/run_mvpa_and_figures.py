@@ -307,7 +307,7 @@ def ddtbox_svm_subject(X_c1: np.ndarray, X_c2: np.ndarray, seed: int = 42):
     P = win_len * n_chan
 
     real_acc = np.zeros(n_steps, dtype=np.float64)
-    perm_acc = np.zeros((n_steps, 10, 10), dtype=np.float64)
+    perm_acc = np.zeros((n_steps, 10, 20), dtype=np.float64)
     fw_z = np.zeros((n_steps, n_chan), dtype=np.float64)
 
     for s in prange(n_steps):
@@ -402,28 +402,29 @@ def ddtbox_svm_subject(X_c1: np.ndarray, X_c2: np.ndarray, seed: int = 42):
                         ap += F_all[tr_idx[i], p] * Kw_centered[i]
                     sum_abs_fw[p] += abs(ap)
 
-                # Permuted labels null
-                y_perm = y_tr.copy()
-                for i in range(n_train - 1, 0, -1):
-                    rng_state = (rng_state * np.uint64(1664525) + np.uint64(1013904223)) & np.uint64(0xFFFFFFFF)
-                    j = int(rng_state % np.uint64(i + 1))
-                    y_perm[i], y_perm[j] = y_perm[j], y_perm[i]
-                coef_p, b_p = solve_csvc_smo(K_tr, y_perm, C=1.0)
-                correct_p = 0
-                for i in range(n_test):
-                    ii = te_idx[i]
-                    dec = b_p
-                    for j in range(n_train):
-                        dec += coef_p[j] * K_all[ii, tr_idx[j]]
-                    pred = 1 if dec >= 0.0 else -1
-                    if pred == y_te[i]:
-                        correct_p += 1
-                perm_acc[s, cv, rep] = 100.0 * correct_p / n_test
+                # Permuted labels null (20 repetitions x 10 folds = 200 evaluations per subject)
+                for p_rep in range(2):
+                    y_perm = y_tr.copy()
+                    for i in range(n_train - 1, 0, -1):
+                        rng_state = (rng_state * np.uint64(1664525) + np.uint64(1013904223)) & np.uint64(0xFFFFFFFF)
+                        j = int(rng_state % np.uint64(i + 1))
+                        y_perm[i], y_perm[j] = y_perm[j], y_perm[i]
+                    coef_p, b_p = solve_csvc_smo(K_tr, y_perm, C=1.0)
+                    correct_p = 0
+                    for i in range(n_test):
+                        ii = te_idx[i]
+                        dec = b_p
+                        for j in range(n_train):
+                            dec += coef_p[j] * K_all[ii, tr_idx[j]]
+                        pred = 1 if dec >= 0.0 else -1
+                        if pred == y_te[i]:
+                            correct_p += 1
+                    perm_acc[s, cv, rep * 2 + p_rep] = 100.0 * correct_p / n_test
 
         real_acc[s] = acc_sum / 100.0
         ch_abs = np.empty(n_chan, dtype=np.float64)
         for ch in range(n_chan):
-            ch_abs[ch] = np.mean(sum_abs_fw[ch * win_len : (ch + 1) * win_len]) / 20.0
+            ch_abs[ch] = np.mean(sum_abs_fw[ch * win_len : (ch + 1) * win_len]) / 100.0
         m_ch = np.mean(ch_abs)
         sd_ch = np.std(ch_abs)
         if sd_ch > 1e-12:
@@ -457,7 +458,7 @@ def ddtbox_svr_subject(X_c: np.ndarray, y_raw: np.ndarray, seed: int = 1337):
         y_norm = y_raw.copy()
 
     real_rz = np.zeros(n_steps, dtype=np.float64)
-    perm_rz = np.zeros((n_steps, 10, 10), dtype=np.float64)
+    perm_rz = np.zeros((n_steps, 10, 20), dtype=np.float64)
     fw_z = np.zeros((n_steps, n_chan), dtype=np.float64)
 
     for s in prange(n_steps):
@@ -551,37 +552,38 @@ def ddtbox_svr_subject(X_c: np.ndarray, y_raw: np.ndarray, seed: int = 1337):
                         ap += F_all[tr_idx[i], p] * Kw_centered[i]
                     sum_abs_fw[p] += abs(ap)
 
-                # Permuted labels null
-                y_perm = y_tr.copy()
-                for i in range(n_train - 1, 0, -1):
-                    rng_state = (rng_state * np.uint64(1664525) + np.uint64(1013904223)) & np.uint64(0xFFFFFFFF)
-                    j = int(rng_state % np.uint64(i + 1))
-                    y_perm[i], y_perm[j] = y_perm[j], y_perm[i]
-                beta_p, b_p = solve_esvr_smo(K_tr, y_perm, C=0.1, eps=0.1)
-                preds_p = np.empty(n_test, dtype=np.float64)
-                for i in range(n_test):
-                    ii = te_idx[i]
-                    dec = b_p
-                    for j in range(n_train):
-                        dec += beta_p[j] * K_all[ii, tr_idx[j]]
-                    preds_p[i] = dec
-                mp_p = np.mean(preds_p)
-                cov_p = 0.0
-                vp_p = 0.0
-                for i in range(n_test):
-                    dp = preds_p[i] - mp_p
-                    dy = y_te[i] - my
-                    cov_p += dp * dy
-                    vp_p += dp * dp
-                denom_p = np.sqrt(vp_p * vy)
-                rp = cov_p / denom_p if denom_p > 1e-12 else 0.0
-                rp = min(max(rp, -0.9999), 0.9999)
-                perm_rz[s, cv, rep] = 0.5 * np.log((1.0 + rp) / (1.0 - rp))
+                # Permuted labels null (20 repetitions x 10 folds = 200 evaluations per subject)
+                for p_rep in range(2):
+                    y_perm = y_tr.copy()
+                    for i in range(n_train - 1, 0, -1):
+                        rng_state = (rng_state * np.uint64(1664525) + np.uint64(1013904223)) & np.uint64(0xFFFFFFFF)
+                        j = int(rng_state % np.uint64(i + 1))
+                        y_perm[i], y_perm[j] = y_perm[j], y_perm[i]
+                    beta_p, b_p = solve_esvr_smo(K_tr, y_perm, C=0.1, eps=0.1)
+                    preds_p = np.empty(n_test, dtype=np.float64)
+                    for i in range(n_test):
+                        ii = te_idx[i]
+                        dec = b_p
+                        for j in range(n_train):
+                            dec += beta_p[j] * K_all[ii, tr_idx[j]]
+                        preds_p[i] = dec
+                    mp_p = np.mean(preds_p)
+                    cov_p = 0.0
+                    vp_p = 0.0
+                    for i in range(n_test):
+                        dp = preds_p[i] - mp_p
+                        dy = y_te[i] - my
+                        cov_p += dp * dy
+                        vp_p += dp * dp
+                    denom_p = np.sqrt(vp_p * vy)
+                    rp = cov_p / denom_p if denom_p > 1e-12 else 0.0
+                    rp = min(max(rp, -0.9999), 0.9999)
+                    perm_rz[s, cv, rep * 2 + p_rep] = 0.5 * np.log((1.0 + rp) / (1.0 - rp))
 
         real_rz[s] = rz_sum / 100.0
         ch_abs = np.empty(n_chan, dtype=np.float64)
         for ch in range(n_chan):
-            ch_abs[ch] = np.mean(sum_abs_fw[ch * win_len : (ch + 1) * win_len]) / 20.0
+            ch_abs[ch] = np.mean(sum_abs_fw[ch * win_len : (ch + 1) * win_len]) / 100.0
         m_ch = np.mean(ch_abs)
         sd_ch = np.std(ch_abs)
         if sd_ch > 1e-12:
@@ -625,20 +627,20 @@ def mxt_perm1_phipson_smyth(
     stder_perm = np.maximum(np.sqrt(sm_sqrs_perm) / sqrt_nXnM1, 1e-12)
     t_perm = mn_perm / stder_perm
 
-    mxt_pos = np.max(np.abs(t_perm), axis=1)
-    mxt = np.concatenate([mxt_pos, -mxt_pos])
-
     if tail == 1:
-        tmx_ptile = float(np.percentile(mxt, 100.0 * (1.0 - alph)))
-        b = np.sum(mxt[:, None] >= t_orig[None, :], axis=0)
+        mxt_pos = np.max(t_perm, axis=1)
+        tmx_ptile = float(np.percentile(mxt_pos, 100.0 * (1.0 - alph)))
+        b = np.sum(mxt_pos[:, None] >= t_orig[None, :], axis=0)
         corrected_p = np.minimum((b + 1.0) / (n_perm + 1.0), 1.0)
     elif tail == 0:
-        tmx_ptile = float(np.percentile(mxt, 100.0 * (1.0 - alph / 2.0)))
-        b = np.sum(mxt[:, None] >= np.abs(t_orig)[None, :], axis=0)
-        corrected_p = np.minimum(2.0 * (b + 1.0) / (n_perm + 1.0), 1.0)
+        mxt_abs = np.max(np.abs(t_perm), axis=1)
+        tmx_ptile = float(np.percentile(mxt_abs, 100.0 * (1.0 - alph)))
+        b = np.sum(mxt_abs[:, None] >= np.abs(t_orig)[None, :], axis=0)
+        corrected_p = np.minimum((b + 1.0) / (n_perm + 1.0), 1.0)
     else:
-        tmx_ptile = float(np.percentile(mxt, 100.0 * alph))
-        b = np.sum(mxt[:, None] >= -t_orig[None, :], axis=0)
+        mxt_neg = np.min(t_perm, axis=1)
+        tmx_ptile = float(np.percentile(mxt_neg, 100.0 * alph))
+        b = np.sum(mxt_neg[:, None] <= t_orig[None, :], axis=0)
         corrected_p = np.minimum((b + 1.0) / (n_perm + 1.0), 1.0)
 
     corrected_h = (corrected_p < alph).astype(np.int32)
@@ -994,16 +996,16 @@ def render_figure3_or_5(
                 x0 = t_ms[run[0]] - 0.3 * step_w
                 x1 = t_ms[run[-1]] + 0.3 * step_w
                 ax.axvspan(x0, x1, color="#55FF44", alpha=0.55, lw=0, zorder=1)
-                # Inset topography for significant window (up to 2 insets per panel to prevent crowding)
+                # Inset topography for significant window (up to 2 representative insets per panel to prevent crowding)
                 if run_idx < 2:
                     avg_run_z = np.mean(fw_all_z[:, run, :], axis=1)  # (n_subs, 31)
                     mean_run_z = np.mean(avg_run_z, axis=0)
-                    _, h_chan_run, _, _ = mxt_perm1_phipson_smyth(avg_run_z, n_perm=2000, alph=0.05, tail=1, seed=900 + r_idx * 10 + c_idx)
-                    # Place inset in upper space near the significant window
-                    norm_x = float(np.clip((np.mean(t_ms[run]) + 1000.0) / 1000.0, 0.12, 0.78))
-                    if len(runs) == 2:
+                    _, h_chan_run, _, _ = mxt_perm1_phipson_smyth(avg_run_z, n_perm=10000, alph=0.05, tail=1, seed=900 + r_idx * 10 + c_idx)
+                    # Place inset in upper space near the significant window without clipping nose tip
+                    norm_x = float(np.clip((np.mean(t_ms[run]) + 1000.0) / 1000.0, 0.14, 0.78))
+                    if len(runs) >= 2:
                         norm_x = 0.22 if run_idx == 0 else 0.68
-                    ins = ax.inset_axes([norm_x - 0.13, 0.56, 0.26, 0.42])
+                    ins = ax.inset_axes([norm_x - 0.13, 0.50, 0.26, 0.41])
                     plot_scalp_topo(
                         ins, mean_run_z, h_chan_run, x_el, y_el, cmap_rb,
                         vmin=-1.0, vmax=1.0, head_lw=0.7, dot_size=2.5, star_size=12.0,
@@ -1014,22 +1016,24 @@ def render_figure3_or_5(
                 t_ms, mean_perm, yerr=se_perm,
                 color="#7F7F7F", linestyle="--", linewidth=0.9,
                 marker="^", markersize=2.2, elinewidth=0.5, capsize=1.2, zorder=2,
-                label="Permutation chance" if (r_idx == 0 and c_idx == 0) else None,
+                label="Permuted chance" if (r_idx == 0 and c_idx == n_cols - 1) else None,
             )
             ax.errorbar(
                 t_ms, mean_real, yerr=se_real,
                 color="black", linestyle="-", linewidth=1.0,
                 marker="s", markersize=2.3, elinewidth=0.55, capsize=1.2, zorder=3,
-                label="Classifier accuracy" if (is_svm and r_idx == 0 and c_idx == 0) else ("SVR Fisher-z r" if (not is_svm and r_idx == 0 and c_idx == 0) else None),
+                label="Empirical accuracy" if (is_svm and r_idx == 0 and c_idx == n_cols - 1) else ("Empirical SVR r_z" if (not is_svm and r_idx == 0 and c_idx == n_cols - 1) else None),
             )
+            if r_idx == 0 and c_idx == n_cols - 1:
+                ax.legend(loc="lower right", frameon=True, facecolor="white", framealpha=0.85, edgecolor="none", fontsize=6.8)
 
             if is_svm:
                 ax.axhline(50.0, color="#999999", linestyle=":", linewidth=0.6, zorder=1)
-                ax.set_ylim(35.0, 72.0)
+                ax.set_ylim(35.0, 74.0)
                 ax.set_yticks([40, 50, 60, 70])
             else:
                 ax.axhline(0.0, color="#999999", linestyle=":", linewidth=0.6, zorder=1)
-                ax.set_ylim(-0.18, 0.22)
+                ax.set_ylim(-0.18, 0.24)
                 ax.set_yticks([-0.1, 0.0, 0.1, 0.2])
 
             ax.set_xlim(-1000.0, 0.0)
@@ -1168,9 +1172,9 @@ def render_figure4_or_6(
                 if run_idx < 2:
                     mean_run_z = np.mean(np.mean(fw_all_z[:, run, :], axis=1), axis=0)
                     norm_x = float(np.clip((np.mean(t_ms[run]) + 1000.0) / 1000.0, 0.14, 0.78))
-                    if len(runs) == 2:
+                    if len(runs) >= 2:
                         norm_x = 0.24 if run_idx == 0 else 0.68
-                    ins = ax.inset_axes([norm_x - 0.13, 0.54, 0.26, 0.44])
+                    ins = ax.inset_axes([norm_x - 0.13, 0.49, 0.26, 0.42])
                     plot_connectome_topo(
                         ins, mean_run_z, x_el, y_el, cmap_rb,
                         thresh=0.45, vmin=-1.0, vmax=1.0, head_lw=0.7, line_lw=0.65, dot_size=2.2,
@@ -1180,20 +1184,24 @@ def render_figure4_or_6(
                 t_ms, mean_perm, yerr=se_perm,
                 color="#7F7F7F", linestyle="--", linewidth=0.95,
                 marker="^", markersize=2.6, elinewidth=0.55, capsize=1.4, zorder=2,
+                label="Permuted chance" if (r_idx == 0 and c_idx == n_cols - 1) else None,
             )
             ax.errorbar(
                 t_ms, mean_real, yerr=se_real,
                 color="black", linestyle="-", linewidth=1.05,
                 marker="s", markersize=2.7, elinewidth=0.6, capsize=1.4, zorder=3,
+                label="Empirical accuracy" if (is_svm and r_idx == 0 and c_idx == n_cols - 1) else ("Empirical SVR r_z" if (not is_svm and r_idx == 0 and c_idx == n_cols - 1) else None),
             )
+            if r_idx == 0 and c_idx == n_cols - 1:
+                ax.legend(loc="lower right", frameon=True, facecolor="white", framealpha=0.85, edgecolor="none", fontsize=6.8)
 
             if is_svm:
                 ax.axhline(50.0, color="#999999", linestyle=":", linewidth=0.6, zorder=1)
-                ax.set_ylim(35.0, 72.0)
+                ax.set_ylim(35.0, 74.0)
                 ax.set_yticks([40, 50, 60, 70])
             else:
                 ax.axhline(0.0, color="#999999", linestyle=":", linewidth=0.6, zorder=1)
-                ax.set_ylim(-0.18, 0.22)
+                ax.set_ylim(-0.18, 0.24)
                 ax.set_yticks([-0.1, 0.0, 0.1, 0.2])
 
             ax.set_xlim(-1000.0, 0.0)
@@ -1388,7 +1396,7 @@ def main():
                 sample_arr = subj_data[subj_ids[0]][f"feat_{m_key}_{c1_name}"]
                 n_steps, _, n_chan, _ = sample_arr.shape
                 all_real = np.zeros((n_subs, n_steps), dtype=np.float64)
-                all_perm_reps = np.zeros((n_subs, n_steps, 10, 10), dtype=np.float64)
+                all_perm_reps = np.zeros((n_subs, n_steps, 10, 20), dtype=np.float64)
                 all_fw_z = np.zeros((n_subs, n_steps, n_chan), dtype=np.float64)
 
                 for s_idx, sid in enumerate(subj_ids):
@@ -1399,9 +1407,16 @@ def main():
                     all_perm_reps[s_idx] = pa
                     all_fw_z[s_idx] = fz
 
-                all_perm_mean = np.mean(all_perm_reps, axis=(2, 3))
-                # Draw random repetition per subject as in tmax_classifier_accuracies.m (default: mean or drawn perm)
-                diff_scores = all_real - all_perm_mean
+                # DDTBOX analyse_decoding_erp_mine.m (lines 293-330) + t_tests_classifier_accuracies.m:
+                # Average across the 10 CV folds for each of the 20 permutation repetitions -> (n_subs, n_steps, 20),
+                # and compute the subject-averaged permutation accuracy all_subj_perm = mean(perm_cv_reps, axis=2)
+                # for plotting mean_subj_perm_acc and se_subj_perm_acc (display_group_results_erp_mine.m lines 94-95).
+                perm_cv_reps = np.mean(all_perm_reps, axis=2)  # (n_subs, n_steps, 20)
+                all_subj_perm = np.mean(perm_cv_reps, axis=2)  # (n_subs, n_steps)
+                rng_draw = np.random.default_rng(4000 + m_idx * 10 + (0 if side_key == "L" else 1))
+                draw_idx = rng_draw.integers(0, 20, size=(n_subs, n_steps, 1))
+                draw_subj_perm = np.take_along_axis(perm_cv_reps, draw_idx, axis=2)[:, :, 0]
+                diff_scores = all_real - draw_subj_perm
                 p_steps, h_steps, t_steps, tcrit_steps = mxt_perm1_phipson_smyth(
                     diff_scores, n_perm=10000, alph=0.05, tail=1, seed=5000 + m_idx * 10 + (0 if side_key == "L" else 1)
                 )
@@ -1413,10 +1428,13 @@ def main():
                 )
 
                 kp = f"svm_{m_key}_{side_key}"
+                results_dict[f"{kp}_all_real"] = all_real
+                results_dict[f"{kp}_perm_cv_reps"] = perm_cv_reps
+                results_dict[f"{kp}_all_subj_perm"] = all_subj_perm
                 results_dict[f"{kp}_mean_real"] = np.mean(all_real, axis=0)
                 results_dict[f"{kp}_se_real"] = np.std(all_real, axis=0, ddof=1) / np.sqrt(n_subs)
-                results_dict[f"{kp}_mean_perm"] = np.mean(all_perm_mean, axis=0)
-                results_dict[f"{kp}_se_perm"] = np.std(all_perm_mean, axis=0, ddof=1) / np.sqrt(n_subs)
+                results_dict[f"{kp}_mean_perm"] = np.mean(all_subj_perm, axis=0)
+                results_dict[f"{kp}_se_perm"] = np.std(all_subj_perm, axis=0, ddof=1) / np.sqrt(n_subs)
                 results_dict[f"{kp}_p_steps"] = p_steps
                 results_dict[f"{kp}_h_steps"] = h_steps
                 results_dict[f"{kp}_t_steps"] = t_steps
@@ -1426,11 +1444,11 @@ def main():
                 results_dict[f"{kp}_fw_epoch_p"] = p_fw
 
             # 2. SVR Regression: Liv, Riv, Lv, Rv
-            for cname in ["Liv", "Riv", "Lv", "Rv"]:
+            for c_idx_svr, cname in enumerate(["Liv", "Riv", "Lv", "Rv"]):
                 sample_arr = subj_data[subj_ids[0]][f"feat_{m_key}_{cname}"]
                 n_steps, _, n_chan, _ = sample_arr.shape
                 all_real = np.zeros((n_subs, n_steps), dtype=np.float64)
-                all_perm_reps = np.zeros((n_subs, n_steps, 10, 10), dtype=np.float64)
+                all_perm_reps = np.zeros((n_subs, n_steps, 10, 20), dtype=np.float64)
                 all_fw_z = np.zeros((n_subs, n_steps, n_chan), dtype=np.float64)
 
                 for s_idx, sid in enumerate(subj_ids):
@@ -1441,22 +1459,29 @@ def main():
                     all_perm_reps[s_idx] = pr
                     all_fw_z[s_idx] = fz
 
-                all_perm_mean = np.mean(all_perm_reps, axis=(2, 3))
-                diff_scores = all_real - all_perm_mean
+                perm_cv_reps = np.mean(all_perm_reps, axis=2)  # (n_subs, n_steps, 20)
+                all_subj_perm = np.mean(perm_cv_reps, axis=2)  # (n_subs, n_steps)
+                rng_draw = np.random.default_rng(6500 + m_idx * 10 + c_idx_svr)
+                draw_idx = rng_draw.integers(0, 20, size=(n_subs, n_steps, 1))
+                draw_subj_perm = np.take_along_axis(perm_cv_reps, draw_idx, axis=2)[:, :, 0]
+                diff_scores = all_real - draw_subj_perm
                 p_steps, h_steps, t_steps, _ = mxt_perm1_phipson_smyth(
-                    diff_scores, n_perm=10000, alph=0.05, tail=1, seed=7000 + m_idx * 10
+                    diff_scores, n_perm=10000, alph=0.05, tail=1, seed=7000 + m_idx * 10 + c_idx_svr
                 )
 
                 fw_epoch_subj = np.mean(all_fw_z, axis=1)
                 p_fw, h_fw, _, _ = mxt_perm1_phipson_smyth(
-                    fw_epoch_subj, n_perm=10000, alph=0.05, tail=1, seed=8000 + m_idx * 10
+                    fw_epoch_subj, n_perm=10000, alph=0.05, tail=1, seed=8000 + m_idx * 10 + c_idx_svr
                 )
 
                 kp = f"svr_{m_key}_{cname}"
+                results_dict[f"{kp}_all_real"] = all_real
+                results_dict[f"{kp}_perm_cv_reps"] = perm_cv_reps
+                results_dict[f"{kp}_all_subj_perm"] = all_subj_perm
                 results_dict[f"{kp}_mean_real"] = np.mean(all_real, axis=0)
                 results_dict[f"{kp}_se_real"] = np.std(all_real, axis=0, ddof=1) / np.sqrt(n_subs)
-                results_dict[f"{kp}_mean_perm"] = np.mean(all_perm_mean, axis=0)
-                results_dict[f"{kp}_se_perm"] = np.std(all_perm_mean, axis=0, ddof=1) / np.sqrt(n_subs)
+                results_dict[f"{kp}_mean_perm"] = np.mean(all_subj_perm, axis=0)
+                results_dict[f"{kp}_se_perm"] = np.std(all_subj_perm, axis=0, ddof=1) / np.sqrt(n_subs)
                 results_dict[f"{kp}_p_steps"] = p_steps
                 results_dict[f"{kp}_h_steps"] = h_steps
                 results_dict[f"{kp}_t_steps"] = t_steps
@@ -1628,10 +1653,23 @@ def main():
         return ", ".join(parts[:-1]) + f", and {parts[-1]}"
 
     t_alpha = np.arange(0, 1000, 20, dtype=np.float64) - 1000.0
+    t_cfc = np.arange(125.0, 875.0, 15.0, dtype=np.float64) - 1000.0
+    t_fc = np.arange(187.5, 787.5, 50.0, dtype=np.float64) - 1000.0
+
     alpha_pct_min = int(round(min(svm_left_pct_sig[0], svm_right_pct_sig[0])))
     alpha_pct_max = int(round(max(svm_left_pct_sig[0], svm_right_pct_sig[0])))
     mvl_pct_min = int(round(min(svm_left_pct_sig[1], svm_right_pct_sig[1])))
     mvl_pct_max = int(round(max(svm_left_pct_sig[1], svm_right_pct_sig[1])))
+    mvl_pct_str = f"{mvl_pct_min}\\%" if mvl_pct_min == mvl_pct_max else f"{mvl_pct_min}\\%--{mvl_pct_max}\\%"
+    mi_pct_min = int(round(min(svm_left_pct_sig[3], svm_right_pct_sig[3])))
+    mi_pct_max = int(round(max(svm_left_pct_sig[3], svm_right_pct_sig[3])))
+    mi_pct_str = f"{mi_pct_min}\\%" if mi_pct_min == mi_pct_max else f"{mi_pct_min}\\%--{mi_pct_max}\\%"
+    glm_pct_min = int(round(min(svm_left_pct_sig[4], svm_right_pct_sig[4])))
+    glm_pct_max = int(round(max(svm_left_pct_sig[4], svm_right_pct_sig[4])))
+    glm_pct_str = f"{glm_pct_min}\\%" if glm_pct_min == glm_pct_max else f"{glm_pct_min}\\%--{glm_pct_max}\\%"
+    wpli_pct_min = round(min(svm_left_pct_sig[6], svm_right_pct_sig[6]), 1)
+    wpli_pct_max = round(max(svm_left_pct_sig[6], svm_right_pct_sig[6]), 1)
+    wpli_pct_str = f"{int(wpli_pct_min)}\\%" if wpli_pct_min == wpli_pct_max and wpli_pct_min == int(wpli_pct_min) else f"{wpli_pct_min}\\%--{wpli_pct_max}\\%"
 
     api.handle_request({
         "action": "update_stats",
@@ -1644,9 +1682,28 @@ def main():
                 "svm_results": {
                     "alpha_pct_sig_range": f"{alpha_pct_min}\\%--{alpha_pct_max}\\%",
                     "alpha_pct_sig_min": alpha_pct_min,
+                    "alpha_pct_sig_left": int(round(svm_left_pct_sig[0])),
+                    "alpha_pct_sig_right": int(round(svm_right_pct_sig[0])),
                     "alpha_left_sig_windows": format_sig_windows(results_dict["svm_lowFreq_amp_L_h_steps"], t_alpha),
                     "alpha_right_sig_windows": format_sig_windows(results_dict["svm_lowFreq_amp_R_h_steps"], t_alpha),
-                    "mvl_pct_sig_range": f"{mvl_pct_min}\\%--{mvl_pct_max}\\%",
+                    "mvl_pct_sig_range": mvl_pct_str,
+                    "mvl_left_sig_windows": format_sig_windows(results_dict["svm_PACoz_L_h_steps"], t_cfc),
+                    "mvl_right_sig_windows": format_sig_windows(results_dict["svm_PACoz_R_h_steps"], t_cfc),
+                    "mi_pct_sig_range": mi_pct_str,
+                    "mi_left_sig_windows": format_sig_windows(results_dict["svm_PACtort_L_h_steps"], t_cfc),
+                    "mi_right_sig_windows": format_sig_windows(results_dict["svm_PACtort_R_h_steps"], t_cfc),
+                    "glm_pct_sig_range": glm_pct_str,
+                    "glm_left_sig_windows": format_sig_windows(results_dict["svm_PACglm_L_h_steps"], t_cfc),
+                    "glm_right_sig_windows": format_sig_windows(results_dict["svm_PACglm_R_h_steps"], t_cfc),
+                    "wpli_pct_sig_range": wpli_pct_str,
+                    "wpli_right_sig_windows": format_sig_windows(results_dict["svm_wPLI_R_h_steps"], t_fc),
+                },
+                "svr_results": {
+                    "alpha_noninf_right_sig_windows": format_sig_windows(results_dict["svr_lowFreq_amp_Riv_h_steps"], t_alpha),
+                    "aac_noninf_right_sig_windows": format_sig_windows(results_dict["svr_AAC_Riv_h_steps"], t_cfc),
+                    "mvl_noninf_right_sig_windows": format_sig_windows(results_dict["svr_PACoz_Riv_h_steps"], t_cfc),
+                    "glm_inf_left_sig_windows": format_sig_windows(results_dict["svr_PACglm_Lv_h_steps"], t_cfc),
+                    "corr_noninf_left_sig_windows": format_sig_windows(results_dict["svr_corr_Liv_h_steps"], t_fc),
                 },
             },
             "mvpa_summary_metrics": {

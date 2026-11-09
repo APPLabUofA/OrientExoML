@@ -1,8 +1,8 @@
 # OrientExoML: End-to-End Reproducible Pipeline for Covert Attention, Alpha/CFC/Connectivity MVPA, and Manuscript Generation
 
 **Title:** *Connecting Covert Attention and Visual Perception to the Spatiotemporal Dynamics of Alpha Band Activity, Cross-Frequency Coupling (CFC), and Functional Connectivity using Multivariate Pattern Analysis (MVPA)*  
-**Authors:** Sarah S. Sheldon, Ahmad F. Al-Kanjou, & Kyle E. Mathewson  
-**Affiliation:** Attention, Perception, and Performance Lab (APPLab), Department of Psychology & Neuroscience and Mental Health Institute, University of Alberta
+**Authors:** Sarah S. Sheldon, Alona Fyshe, & Kyle E. Mathewson  
+**Affiliation:** Attention, Perception, and Performance Lab (APPLab), Department of Psychology, Department of Computing Science, & Neuroscience and Mental Health Institute, University of Alberta
 
 ---
 

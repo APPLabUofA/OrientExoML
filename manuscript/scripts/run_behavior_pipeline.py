@@ -195,9 +195,20 @@ def plot_publication_figure2(abs_err, resp_err, staircase_grays, out_path):
     ax_a.set_xticks(x)
     ax_a.set_xticklabels(["Left Target", "Right Target"])
     ax_a.set_ylabel("Absolute Response Error (°)")
-    ax_a.set_ylim(0, 50)
+    ax_a.set_ylim(0, 52)
     ax_a.set_title("A. Absolute Orientation Error", fontweight="bold")
     ax_a.legend(frameon=False, loc="upper right")
+
+    # Add significance brackets (* for Left Target p < 0.05, ns for Right Target)
+    y_top_l = max(means_abs[0][0] + sems_abs[0][0], means_abs[0][1] + sems_abs[0][1]) + 2.2
+    ax_a.plot([x[0] - width/2, x[0] - width/2, x[0] + width/2, x[0] + width/2],
+              [y_top_l - 0.8, y_top_l, y_top_l, y_top_l - 0.8], color="black", linewidth=1.0)
+    ax_a.text(x[0], y_top_l + 0.4, "*", ha="center", va="bottom", fontsize=13, fontweight="bold")
+
+    y_top_r = max(means_abs[1][0] + sems_abs[1][0], means_abs[1][1] + sems_abs[1][1]) + 2.2
+    ax_a.plot([x[1] - width/2, x[1] - width/2, x[1] + width/2, x[1] + width/2],
+              [y_top_r - 0.8, y_top_r, y_top_r, y_top_r - 0.8], color="black", linewidth=1.0)
+    ax_a.text(x[1], y_top_r + 0.5, "ns", ha="center", va="bottom", fontsize=9.5, fontweight="bold")
 
     # Panel B: Signed Response Error
     ax_b = axes[1]

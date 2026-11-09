@@ -11,11 +11,11 @@ This directory contains the automated, anti-hotwired LaTeX and Python pipeline f
 To guarantee that no statistical numbers, figure arrays, or file paths are ever hardcoded ("hotwired") in `.tex` files or plotting scripts:
 
 1. **Zero Hardcoded Numbers in LaTeX (`generated_stats.tex`)**:
-   Every empirical number, sample size, $F_{\max}$ / $t_{\max}$ statistic, FOOOF parameter, individual alpha frequency, MVPA decoding window, percentage of significant windows, and figure file path in [`main.tex`](file:///Users/fulkanjou/OrientExoML/manuscript/main.tex), [`cover_letter.tex`](file:///Users/fulkanjou/OrientExoML/manuscript/cover_letter.tex), and [`response_to_reviewers.tex`](file:///Users/fulkanjou/OrientExoML/manuscript/response_to_reviewers.tex) is injected via a `\stat*` or `\figPath*` macro generated from [`analysis_results.json`](file:///Users/fulkanjou/OrientExoML/manuscript/analysis_results.json) by [`scripts/generate_latex_stats.py`](file:///Users/fulkanjou/OrientExoML/manuscript/scripts/generate_latex_stats.py).
+   Every empirical number, sample size, $F_{\max}$ / $t_{\max}$ statistic, FOOOF parameter, individual alpha frequency, MVPA decoding window, percentage of significant windows, and figure file path in [`main.tex`](main.tex), [`cover_letter.tex`](cover_letter.tex), and [`response_to_reviewers.tex`](response_to_reviewers.tex) is injected via a `\stat*` or `\figPath*` macro generated from [`analysis_results.json`](analysis_results.json) by [`scripts/generate_latex_stats.py`](scripts/generate_latex_stats.py).
 2. **Zero Hardcoded Arrays in Figure Generators**:
-   [`scripts/pipeline_api.py`](file:///Users/fulkanjou/OrientExoML/manuscript/scripts/pipeline_api.py) (`generate_figure7_mvpa_summary`) and [`scripts/regenerate_mvpa_figures.py`](file:///Users/fulkanjou/OrientExoML/manuscript/scripts/regenerate_mvpa_figures.py) contain zero hardcoded data arrays; they read all means, SEMs, and significance indices directly from [`analysis_results.json`](file:///Users/fulkanjou/OrientExoML/manuscript/analysis_results.json) (`mvpa_summary_metrics`) or external JSON payloads exported by MATLAB/Python.
+   [`scripts/pipeline_api.py`](scripts/pipeline_api.py) (`generate_figure7_mvpa_summary`) and [`scripts/regenerate_mvpa_figures.py`](scripts/regenerate_mvpa_figures.py) contain zero hardcoded data arrays; they read all means, SEMs, and significance indices directly from [`analysis_results.json`](analysis_results.json) (`mvpa_summary_metrics`) or external JSON payloads exported by MATLAB/Python.
 3. **Provenance & SHA256 Checksum Tracking**:
-   [`analysis_results.json`](file:///Users/fulkanjou/OrientExoML/manuscript/analysis_results.json) tracks a `provenance` block for every statistical category (`participants`, `behavior`, `fooof`, `mvpa`, `mvpa_summary_metrics`) and every figure (`figure1`--`figure7`), recording:
+   [`analysis_results.json`](analysis_results.json) tracks a `provenance` block for every statistical category (`participants`, `behavior`, `fooof`, `mvpa`, `mvpa_summary_metrics`) and every figure (`figure1`--`figure7`), recording:
    - `status`: `"placeholder_from_manuscript"` / `"placeholder_screenshot"` vs. `"computed_from_raw_data"` / `"generated_from_analysis"`
    - `source_script`: which analysis script pushed the data
    - `updated_at`: UTC ISO-8601 timestamp
@@ -29,7 +29,7 @@ To guarantee that no statistical numbers, figure arrays, or file paths are ever 
 ## 2. Build & Audit Commands
 
 ```bash
-cd /Users/fulkanjou/OrientExoML/manuscript
+cd manuscript
 
 # Draft build (allows placeholder stats/screenshots, blocks hotwired LaTeX literals):
 make all
@@ -45,12 +45,12 @@ make submission-ready
 
 ## 3. API Request Payloads for Analysis Scripts & Figure Generators
 
-When your MATLAB/Python analysis scripts finish running on raw data, have them call [`scripts/pipeline_api.py`](file:///Users/fulkanjou/OrientExoML/manuscript/scripts/pipeline_api.py). Pushing via `update_stats` or `register_figure` automatically flips that component's provenance status from `"placeholder_*"` to `"computed_from_raw_data"` / `"generated_from_analysis"`, records the `source_script` and timestamp, updates `generated_stats.tex`, and (for `mvpa_summary_metrics`) automatically re-renders **Figure 7**.
+When your MATLAB/Python analysis scripts finish running on raw data, have them call [`scripts/pipeline_api.py`](scripts/pipeline_api.py). Pushing via `update_stats` or `register_figure` automatically flips that component's provenance status from `"placeholder_*"` to `"computed_from_raw_data"` / `"generated_from_analysis"`, records the `source_script` and timestamp, updates `generated_stats.tex`, and (for `mvpa_summary_metrics`) automatically re-renders **Figure 7**.
 
 ### A. Push Real Analysis Statistics (`action: "update_stats"`)
 
 ```bash
-python3 /Users/fulkanjou/OrientExoML/manuscript/scripts/pipeline_api.py --request-json '{
+python3 manuscript/scripts/pipeline_api.py --request-json '{
   "action": "update_stats",
   "source_script": "MVPA_CuedOrientTask_paper/run_fooof_and_behavior.m",
   "updates": {
@@ -71,7 +71,7 @@ python3 /Users/fulkanjou/OrientExoML/manuscript/scripts/pipeline_api.py --reques
 ### B. Push Real MVPA Summary Arrays & Auto-Regenerate Figure 7
 
 ```bash
-python3 /Users/fulkanjou/OrientExoML/manuscript/scripts/pipeline_api.py --request-json '{
+python3 manuscript/scripts/pipeline_api.py --request-json '{
   "action": "update_stats",
   "source_script": "MVPA_CuedOrientTask_paper/summarize_mvpa_metrics.m",
   "updates": {
@@ -86,7 +86,7 @@ python3 /Users/fulkanjou/OrientExoML/manuscript/scripts/pipeline_api.py --reques
 ### C. Register a Newly Generated Figure Replacing a Placeholder (`action: "register_figure"`)
 
 ```bash
-python3 /Users/fulkanjou/OrientExoML/manuscript/scripts/pipeline_api.py --request-json '{
+python3 manuscript/scripts/pipeline_api.py --request-json '{
   "action": "register_figure",
   "source_script": "manuscript/scripts/regenerate_mvpa_figures.py",
   "figure_id": "figure3",

@@ -418,7 +418,7 @@ def compute_mi_tort_numba(phase_low: np.ndarray, amp_high: np.ndarray, winSize: 
     """
     Tort et al. (2008, 2010) KL Modulation Index matching eeg_klmi_OrientExo_ML.m:
     Starts with nbins = 18 across [-pi, pi] (or [0, 2pi]) and iteratively halves
-    nbins (18 -> 9 -> 4 -> 2) if any phase bin in the 250-ms window is empty.
+    nbins via ceil(nbins / 2) (18 -> 9 -> 5 -> 3 -> 2) if any phase bin in the 250-ms window is empty.
     """
     n_chan, n_trials, Ntime = phase_low.shape
     out = np.empty((n_chan, n_trials, n_steps), dtype=np.float32)
@@ -475,7 +475,7 @@ def compute_mi_tort_numba(phase_low: np.ndarray, amp_high: np.ndarray, winSize: 
                                 kl += p * np.log(p * 18.0)
                         out[ch, tr, step] = kl / np.log(18.0)
                 else:
-                    # Iteratively halve nbins (9, 4, 2) until all bins are non-empty
+                    # Iteratively halve nbins via ceil(nbins / 2) (9 -> 5 -> 3 -> 2) per eeg_klmi_OrientExo_ML.m line 34
                     nb = 9
                     while nb >= 2:
                         cnt_nb = np.zeros(nb, dtype=np.int32)
@@ -509,7 +509,7 @@ def compute_mi_tort_numba(phase_low: np.ndarray, amp_high: np.ndarray, winSize: 
                                         kl += p * np.log(p * nb)
                                 out[ch, tr, step] = kl / np.log(float(nb))
                             break
-                        nb = nb // 2
+                        nb = (nb + 1) // 2 if nb > 2 else 1
     return out
 
 

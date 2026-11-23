@@ -437,7 +437,7 @@ def ddtbox_svm_subject(X_c1: np.ndarray, X_c2: np.ndarray, seed: int = 42):
         for ch in range(n_chan):
             ch_abs[ch] = np.mean(sum_abs_fw[ch * win_len : (ch + 1) * win_len]) / 100.0
         m_ch = np.mean(ch_abs)
-        sd_ch = np.std(ch_abs)
+        sd_ch = np.sqrt(np.sum((ch_abs - m_ch) ** 2) / max(1, n_chan - 1))
         if sd_ch > 1e-12:
             fw_z[s] = (ch_abs - m_ch) / sd_ch
 
@@ -594,7 +594,7 @@ def ddtbox_svr_subject(X_c: np.ndarray, y_raw: np.ndarray, seed: int = 1337):
         for ch in range(n_chan):
             ch_abs[ch] = np.mean(sum_abs_fw[ch * win_len : (ch + 1) * win_len]) / 100.0
         m_ch = np.mean(ch_abs)
-        sd_ch = np.std(ch_abs)
+        sd_ch = np.sqrt(np.sum((ch_abs - m_ch) ** 2) / max(1, n_chan - 1))
         if sd_ch > 1e-12:
             fw_z[s] = (ch_abs - m_ch) / sd_ch
 

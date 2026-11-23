@@ -131,7 +131,9 @@ def perm_rm_anova_2x2(data, n_perms=10000, seed=42):
         t_vals = np.where(stds > 1e-15, means / (stds / np.sqrt(N)), 0.0)
         F_dist = t_vals ** 2
         F_obs = float(F_dist[0])
-        crit_F = float(np.percentile(F_dist, 95))
+        F_sorted = np.sort(F_dist)
+        crit_idx = min(int(np.ceil((1.0 - 0.05) * n_perms)) - 1, n_perms - 1)
+        crit_F = float(F_sorted[crit_idx])
         p_val = float(np.mean(F_dist >= F_obs))
         return {
             "fmax": round(F_obs, 2),

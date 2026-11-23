@@ -15,27 +15,27 @@
     "participants": {
       "status": "computed_from_raw_data",
       "source_script": "manuscript/scripts/run_behavior_pipeline.py",
-      "updated_at": "2026-11-23T16:52:52.242828+00:00"
+      "updated_at": "2026-11-23T17:01:22.777749+00:00"
     },
     "behavior": {
       "status": "computed_from_raw_data",
       "source_script": "manuscript/scripts/run_behavior_pipeline.py",
-      "updated_at": "2026-11-23T16:52:52.242828+00:00"
+      "updated_at": "2026-11-23T17:01:22.777749+00:00"
     },
     "fooof": {
       "status": "computed_from_raw_data",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "updated_at": "2026-11-23T16:52:54.930350+00:00"
+      "updated_at": "2026-11-23T17:01:25.057360+00:00"
     },
     "mvpa": {
       "status": "computed_from_raw_data",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "updated_at": "2026-11-23T16:52:57.663077+00:00"
+      "updated_at": "2026-11-23T17:01:27.831518+00:00"
     },
     "mvpa_summary_metrics": {
       "status": "computed_from_raw_data",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "updated_at": "2026-11-23T16:52:57.663077+00:00"
+      "updated_at": "2026-11-23T17:01:27.831518+00:00"
     }
   },
   "participants": {
@@ -494,43 +494,43 @@
       "source_script": "manuscript/scripts/run_behavior_pipeline.py",
       "sha256": "4dbf6d601c9bf1a959513ffa25ef4ae1f6538c31fa4aaf11f1d2f3ff529bf6c1",
       "description": "Empirical Figure 2 generated from N=28 single-trial behavioral datasets (OSF u6fgm)",
-      "updated_at": "2026-11-23T16:52:52.276006+00:00"
+      "updated_at": "2026-11-23T17:01:22.804927+00:00"
     },
     "figure3": {
       "id": "figure3",
       "file": "figures/figure3_svm_cfc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "e941a8ca54b9bbd09d5e74d1f60d9b2ba8956a616bf85e809c36837bd19802bf",
+      "sha256": "ce9b740bb2f0593c82d191065d1fab265a61cf4888c5c7c59903a664c55b9bde",
       "description": "Spatiotemporal SVM classification and feature weights for alpha amplitude and CFC measures",
-      "updated_at": "2026-11-23T16:52:55.773931+00:00"
+      "updated_at": "2026-11-23T17:01:25.897026+00:00"
     },
     "figure4": {
       "id": "figure4",
       "file": "figures/figure4_svm_fc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "a74bc5eefe63597314d382372577c1a25479fa24dce1f6805f26461aac75a070",
+      "sha256": "0163d54e16afa58cc0af8f77fdd7acc209ed5e55e70a754718743b36dcf68e2a",
       "description": "Spatiotemporal SVM classification and feature weights for functional connectivity measures",
-      "updated_at": "2026-11-23T16:52:56.132800+00:00"
+      "updated_at": "2026-11-23T17:01:26.262391+00:00"
     },
     "figure5": {
       "id": "figure5",
       "file": "figures/figure5_svr_cfc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "6c6d808ace7292d80b38182cfdf434bfe8b3eb1d1209f49e62d4d22db7b3ae3e",
+      "sha256": "ebd05329309838ec35e8d45b7ac8944811cfd8c740101854c0c3504cc09a7774",
       "description": "Spatiotemporal SVR prediction and feature weights for alpha amplitude and CFC measures",
-      "updated_at": "2026-11-23T16:52:57.097530+00:00"
+      "updated_at": "2026-11-23T17:01:27.266690+00:00"
     },
     "figure6": {
       "id": "figure6",
       "file": "figures/figure6_svr_fc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "af28f638805018aafb6965d8cb25c553b4e9663487b8295d4f298a52c903ae23",
+      "sha256": "d501ce3674645afb91bda7dd87bc116d590b9f227246a57f1834ce1b410119d8",
       "description": "Spatiotemporal SVR prediction and feature weights for functional connectivity measures",
-      "updated_at": "2026-11-23T16:52:57.634048+00:00"
+      "updated_at": "2026-11-23T17:01:27.800066+00:00"
     },
     "figure7": {
       "id": "figure7",
@@ -539,7 +539,7 @@
       "source_script": "scripts/run_mvpa_and_figures.py",
       "sha256": "8756729b23d86024c50424d84ffe981adefaed53b9645affce8f1105f526d870",
       "description": "Summary comparison of MVPA classification and SVR prediction performance across all EEG metrics (Reviewer 2 request)",
-      "updated_at": "2026-11-23T16:52:57.973948+00:00"
+      "updated_at": "2026-11-23T17:01:28.121623+00:00"
     }
   }
 }

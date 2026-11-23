@@ -132,7 +132,7 @@ def main():
     draw_placeholders_and_fixation(ax, x_fix, y_mid)
     ax.text(x_fix, y_mid + 1.02, "Fixation", fontsize=17, ha="center", va="bottom", color="#111111")
     ax.text(x_fix, y_mid - 1.05, f"{task['fixation_duration_ms']} ms", fontsize=13.5, ha="center", va="top", color="#111111")
-    draw_dimension_bar(ax, x_fix - 0.83, y_mid - 0.31, x_fix - 0.83, y_mid + 0.31, "2.11°", (-0.28, 0.0), fontsize=10)
+    draw_dimension_bar(ax, x_fix - 0.80, y_mid - 0.31, x_fix - 0.80, y_mid + 0.31, "2.11°", (0.14, 0.42), fontsize=9.5)
     draw_dimension_bar(ax, x_fix - 0.045, y_mid + 0.12, x_fix + 0.045, y_mid + 0.12, "0.11°", (0.0, 0.13), fontsize=9.5)
     draw_dimension_bar(ax, x_fix, y_mid - 0.42, x_fix + 0.46, y_mid - 0.42, "6.47°", (0.0, -0.16), fontsize=10)
 
@@ -158,8 +158,8 @@ def main():
     draw_placeholders_and_fixation(ax, x_targ, y_targs[1])
     draw_needle(ax, x_targ - 0.46 - 0.06, y_targs[1] - 0.06, angle_deg=45.0)
     draw_dimension_bar(
-        ax, x_targ - 0.62, y_targs[1] - 0.02, x_targ - 0.44, y_targs[1] + 0.16,
-        "1°", (-0.12, 0.10), fontsize=10
+        ax, x_targ - 0.58, y_targs[1] - 0.02, x_targ - 0.42, y_targs[1] + 0.14,
+        "1°", (-0.09, 0.09), fontsize=9.5
     )
     ax.text(x_targ, y_targs[0] + 1.02, "Target", fontsize=17, ha="center", va="bottom", color="#111111")
     ax.text(x_targ, y_targs[1] - 1.05, f"{task['target_duration_ms']:.1f} ms", fontsize=13.5, ha="center", va="top", color="#111111")
@@ -211,13 +211,13 @@ def main():
     draw_screen_box(ax, xb_boxes[1], y_b)
     draw_needle(ax, xb_boxes[1] + 0.06, y_b - 0.06, angle_deg=135.0)
 
-    # Box 3: Error arc
+    # Box 3: Error arc centered at needle hub spanning 45° to 135°
     draw_screen_box(ax, xb_boxes[2], y_b)
     draw_needle(ax, xb_boxes[2], y_b - 0.08, angle_deg=45.0, color="#222222")
     draw_needle(ax, xb_boxes[2], y_b - 0.08, angle_deg=135.0, color="#444444")
     err_arc = Arc(
-        (xb_boxes[2], y_b + 0.16), width=0.46, height=0.46,
-        angle=0, theta1=-15, theta2=195,
+        (xb_boxes[2], y_b - 0.08), width=0.30, height=0.30,
+        angle=0, theta1=45, theta2=135,
         edgecolor="#d62728", linewidth=2.4, zorder=6
     )
     ax.add_patch(err_arc)

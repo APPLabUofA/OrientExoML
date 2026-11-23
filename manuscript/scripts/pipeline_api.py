@@ -255,51 +255,60 @@ class OrientExoPipelineAPI:
         metrics = sm["labels"]
         y_pos = np.arange(len(metrics))[::-1]
 
-        svm_left_peak = np.array(sm["svm_left_peak"], dtype=float)
-        svm_left_sem  = np.array(sm["svm_left_sem"], dtype=float)
-        svm_right_peak = np.array(sm["svm_right_peak"], dtype=float)
-        svm_right_sem  = np.array(sm["svm_right_sem"], dtype=float)
+        svm_left_val = np.array(sm.get("svm_left_mean", sm["svm_left_peak"]), dtype=float)
+        svm_left_sem = np.array(sm["svm_left_sem"], dtype=float)
+        svm_right_val = np.array(sm.get("svm_right_mean", sm["svm_right_peak"]), dtype=float)
+        svm_right_sem = np.array(sm["svm_right_sem"], dtype=float)
 
         svm_left_pct_sig  = np.array(sm["svm_left_pct_sig"], dtype=float)
         svm_right_pct_sig = np.array(sm["svm_right_pct_sig"], dtype=float)
 
-        svr_noninf_peak = np.array(sm["svr_noninf_peak"], dtype=float)
-        svr_noninf_sem  = np.array(sm["svr_noninf_sem"], dtype=float)
-        svr_inf_peak    = np.array(sm["svr_inf_peak"], dtype=float)
-        svr_inf_sem     = np.array(sm["svr_inf_sem"], dtype=float)
+        has_4cond_svr = "svr_liv_mean" in sm
+        if has_4cond_svr:
+            svr_liv_m = np.array(sm["svr_liv_mean"], dtype=float)
+            svr_liv_s = np.array(sm["svr_liv_sem"], dtype=float)
+            svr_riv_m = np.array(sm["svr_riv_mean"], dtype=float)
+            svr_riv_s = np.array(sm["svr_riv_sem"], dtype=float)
+            svr_lv_m  = np.array(sm["svr_lv_mean"], dtype=float)
+            svr_lv_s  = np.array(sm["svr_lv_sem"], dtype=float)
+            svr_rv_m  = np.array(sm["svr_rv_mean"], dtype=float)
+            svr_rv_s  = np.array(sm["svr_rv_sem"], dtype=float)
+        else:
+            svr_noninf_val = np.array(sm["svr_noninf_peak"], dtype=float)
+            svr_noninf_sem = np.array(sm["svr_noninf_sem"], dtype=float)
+            svr_inf_val    = np.array(sm["svr_inf_peak"], dtype=float)
+            svr_inf_sem    = np.array(sm["svr_inf_sem"], dtype=float)
 
         fig, axes = plt.subplots(
-            1, 3, figsize=(13.5, 5.2), sharey=True,
+            1, 3, figsize=(13.8, 5.4), sharey=True,
             gridspec_kw={"width_ratios": [1.25, 1.0, 1.25], "wspace": 0.14}
         )
 
         bar_h = 0.34
         c_left = "#1f77b4"
         c_right = "#e05a47"
-        c_noninf = "#d94882"
-        c_inf = "#1f77b4"
 
-        # Panel A: Peak SVM Classification Accuracy (%)
+        # Panel A: Epoch-Averaged SVM Classification Accuracy (%)
         ax = axes[0]
         ax.axvline(50.0, color="#666666", linestyle="--", linewidth=1.0, zorder=1)
-        ax.barh(y_pos + bar_h / 2, svm_left_peak, height=bar_h, xerr=svm_left_sem,
+        ax.barh(y_pos + bar_h / 2, svm_left_val, height=bar_h, xerr=svm_left_sem,
                 color=c_left, alpha=0.9, capsize=2.5, label="Left Targets", zorder=3)
-        ax.barh(y_pos - bar_h / 2, svm_right_peak, height=bar_h, xerr=svm_right_sem,
+        ax.barh(y_pos - bar_h / 2, svm_right_val, height=bar_h, xerr=svm_right_sem,
                 color=c_right, alpha=0.9, capsize=2.5, label="Right Targets", zorder=3)
 
         for idx in sm.get("svm_left_sig_indices", []):
-            ax.text(svm_left_peak[idx] + svm_left_sem[idx] + 0.35, y_pos[idx] + bar_h / 2,
+            ax.text(svm_left_val[idx] + svm_left_sem[idx] + 0.30, y_pos[idx] + bar_h / 2,
                     "*", va="center", ha="left", fontsize=12, fontweight="bold", color=c_left)
         for idx in sm.get("svm_right_sig_indices", []):
-            ax.text(svm_right_peak[idx] + svm_right_sem[idx] + 0.35, y_pos[idx] - bar_h / 2,
+            ax.text(svm_right_val[idx] + svm_right_sem[idx] + 0.30, y_pos[idx] - bar_h / 2,
                     "*", va="center", ha="left", fontsize=12, fontweight="bold", color=c_right)
 
-        svm_max_val = float(np.max(np.maximum(svm_left_peak + svm_left_sem, svm_right_peak + svm_right_sem)))
-        ax.set_xlim(45, max(68.0, svm_max_val + 8.5))
+        svm_max_val = float(np.max(np.maximum(svm_left_val + svm_left_sem, svm_right_val + svm_right_sem)))
+        ax.set_xlim(46, max(64.0, svm_max_val + 5.5))
         ax.set_yticks(y_pos)
         ax.set_yticklabels(metrics, fontweight="bold")
-        ax.set_xlabel("Peak Classification Accuracy (%)")
-        ax.set_title("SVM Cue Classification Peak", fontweight="bold", pad=10)
+        ax.set_xlabel("Mean Classification Accuracy (%)")
+        ax.set_title("SVM Cue Classification (Epoch Mean)", fontweight="bold", pad=10)
         ax.spines[["top", "right"]].set_visible(False)
         ax.legend(loc="lower right", frameon=False)
         ax.text(-0.28, 1.06, "A", transform=ax.transAxes, fontsize=16, fontweight="bold", va="top")
@@ -310,33 +319,36 @@ class OrientExoPipelineAPI:
                  color=c_left, alpha=0.9, label="Left Targets", zorder=3)
         ax2.barh(y_pos - bar_h / 2, svm_right_pct_sig, height=bar_h,
                  color=c_right, alpha=0.9, label="Right Targets", zorder=3)
-        ax2.set_xlim(0, 100)
+        ax2.set_xlim(0, 105)
         ax2.set_xlabel("Significant Time Windows (%)")
         ax2.set_title("SVM Temporal Extent (p < 0.05)", fontweight="bold", pad=10)
         ax2.spines[["top", "right"]].set_visible(False)
         ax2.text(-0.08, 1.06, "B", transform=ax2.transAxes, fontsize=16, fontweight="bold", va="top")
 
-        # Panel C: Peak SVR Prediction Accuracy (Fisher-Z r)
+        # Panel C: Epoch-Averaged SVR Prediction Accuracy (Fisher-Z r_z) across all 4 conditions
         ax3 = axes[2]
         ax3.axvline(0.0, color="#666666", linestyle="--", linewidth=1.0, zorder=1)
-        ax3.barh(y_pos + bar_h / 2, svr_noninf_peak, height=bar_h, xerr=svr_noninf_sem,
-                 color=c_noninf, alpha=0.9, capsize=2.5, label="Non-Informative Cue", zorder=3)
-        ax3.barh(y_pos - bar_h / 2, svr_inf_peak, height=bar_h, xerr=svr_inf_sem,
-                 color=c_inf, alpha=0.9, capsize=2.5, label="Informative Cue", zorder=3)
-
-        for idx in sm.get("svr_noninf_sig_indices", []):
-            ax3.text(svr_noninf_peak[idx] + svr_noninf_sem[idx] + 0.004, y_pos[idx] + bar_h / 2,
-                     "*", va="center", ha="left", fontsize=12, fontweight="bold", color=c_noninf)
-        for idx in sm.get("svr_inf_sig_indices", []):
-            ax3.text(svr_inf_peak[idx] + svr_inf_sem[idx] + 0.004, y_pos[idx] - bar_h / 2,
-                     "*", va="center", ha="left", fontsize=12, fontweight="bold", color=c_inf)
-
-        svr_max_val = float(np.max(np.maximum(svr_noninf_peak + svr_noninf_sem, svr_inf_peak + svr_inf_sem)))
-        ax3.set_xlim(-0.02, max(0.24, svr_max_val + 0.09))
-        ax3.set_xlabel("Peak Fisher-Z Correlation ($r_z$)")
-        ax3.set_title("SVR Error Prediction Peak", fontweight="bold", pad=10)
+        if has_4cond_svr:
+            bh4 = 0.18
+            ax3.barh(y_pos + 1.5 * bh4, svr_liv_m, height=bh4, xerr=svr_liv_s,
+                     color="#d94882", alpha=0.92, capsize=1.8, label="Non-Inf Left", zorder=3)
+            ax3.barh(y_pos + 0.5 * bh4, svr_riv_m, height=bh4, xerr=svr_riv_s,
+                     color="#f29cb8", alpha=0.92, capsize=1.8, label="Non-Inf Right", zorder=3)
+            ax3.barh(y_pos - 0.5 * bh4, svr_lv_m, height=bh4, xerr=svr_lv_s,
+                     color="#1f77b4", alpha=0.92, capsize=1.8, label="Inf Left", zorder=3)
+            ax3.barh(y_pos - 1.5 * bh4, svr_rv_m, height=bh4, xerr=svr_rv_s,
+                     color="#74add1", alpha=0.92, capsize=1.8, label="Inf Right", zorder=3)
+            ax3.set_xlim(-0.08, 0.08)
+        else:
+            ax3.barh(y_pos + bar_h / 2, svr_noninf_val, height=bar_h, xerr=svr_noninf_sem,
+                     color="#d94882", alpha=0.9, capsize=2.5, label="Non-Informative Cue", zorder=3)
+            ax3.barh(y_pos - bar_h / 2, svr_inf_val, height=bar_h, xerr=svr_inf_sem,
+                     color="#1f77b4", alpha=0.9, capsize=2.5, label="Informative Cue", zorder=3)
+            ax3.set_xlim(-0.04, 0.10)
+        ax3.set_xlabel("Mean Fisher-Z Correlation ($r_z$)")
+        ax3.set_title("SVR Error Prediction (Epoch Mean)", fontweight="bold", pad=10)
         ax3.spines[["top", "right"]].set_visible(False)
-        ax3.legend(loc="lower right", frameon=False)
+        ax3.legend(loc="lower right", frameon=False, fontsize=8.5)
         ax3.text(-0.08, 1.06, "C", transform=ax3.transAxes, fontsize=16, fontweight="bold", va="top")
 
         fig.savefig(out_png, dpi=300, bbox_inches="tight")
@@ -347,6 +359,7 @@ class OrientExoPipelineAPI:
             "file": "figures/figure7_mvpa_summary.png",
             "status": status,
             "source_script": source_script,
+            "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "sha256": compute_sha256(out_png),
         })
         print(f"[pipeline_api] Generated summary figure: {out_png} (status={status})")

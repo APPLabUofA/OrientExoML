@@ -64,7 +64,21 @@ def get_redblue_cmap(m: int = 256) -> LinearSegmentedColormap:
 # 2. NUMBA-ACCELERATED LIBSVM SMO SOLVERS & DDTBOX DECODING + HAUFE WEIGHTS
 # ==============================================================================
 @njit(fastmath=True)
-def solve_csvc_smo(K: np.ndarray, y: np.ndarray, C: float = 1.0, tol: float = 1e-2, max_iter: int = 600):
+def splitmix64_randint(state: np.uint64, bound: int) -> Tuple[np.uint64, int]:
+    """
+    High-quality 64-bit SplitMix64 PRNG step returning (new_state, uniform_int_in_0..bound-1).
+    Eliminates low-bit modulo correlation of 32-bit LCGs in Fisher-Yates shuffles.
+    """
+    state = (state + np.uint64(0x9E3779B97F4A7C15)) & np.uint64(0xFFFFFFFFFFFFFFFF)
+    z = state
+    z = ((z ^ (z >> np.uint64(30))) * np.uint64(0xBF58476D1CE4E5B9)) & np.uint64(0xFFFFFFFFFFFFFFFF)
+    z = ((z ^ (z >> np.uint64(27))) * np.uint64(0x94D049BB133111EB)) & np.uint64(0xFFFFFFFFFFFFFFFF)
+    z = z ^ (z >> np.uint64(31))
+    return state, int(z % np.uint64(bound))
+
+
+@njit(fastmath=True)
+def solve_csvc_smo(K: np.ndarray, y: np.ndarray, C: float = 1.0, tol: float = 1e-3, max_iter: int = 2500):
     """Fan et al. (2005) LIBSVM dual SMO solver for C-SVC (-s 0 -t 0 -c 1)."""
     n = len(y)
     alpha = np.zeros(n, dtype=np.float64)
@@ -169,7 +183,7 @@ def solve_csvc_smo(K: np.ndarray, y: np.ndarray, C: float = 1.0, tol: float = 1e
 
 
 @njit(fastmath=True)
-def solve_esvr_smo(K: np.ndarray, y_target: np.ndarray, C: float = 0.1, eps: float = 0.1, tol: float = 1e-2, max_iter: int = 600):
+def solve_esvr_smo(K: np.ndarray, y_target: np.ndarray, C: float = 0.1, eps: float = 0.01, tol: float = 1e-3, max_iter: int = 2500):
     """Fan et al. (2005) LIBSVM dual SMO solver for epsilon-SVR (-s 3 -t 0 -c 0.1 -p 0.1)."""
     n = len(y_target)
     n2 = 2 * n
@@ -340,12 +354,10 @@ def ddtbox_svm_subject(X_c1: np.ndarray, X_c2: np.ndarray, seed: int = 42):
             p1 = np.arange(n1)
             p2 = np.arange(n2)
             for i in range(n1 - 1, 0, -1):
-                rng_state = (rng_state * np.uint64(1664525) + np.uint64(1013904223)) & np.uint64(0xFFFFFFFF)
-                j = int(rng_state % np.uint64(i + 1))
+                rng_state, j = splitmix64_randint(rng_state, i + 1)
                 p1[i], p1[j] = p1[j], p1[i]
             for i in range(n2 - 1, 0, -1):
-                rng_state = (rng_state * np.uint64(1664525) + np.uint64(1013904223)) & np.uint64(0xFFFFFFFF)
-                j = int(rng_state % np.uint64(i + 1))
+                rng_state, j = splitmix64_randint(rng_state, i + 1)
                 p2[i], p2[j] = p2[j], p2[i]
             u1 = p1[:n_use]
             u2 = p2[:n_use] + n1
@@ -406,8 +418,7 @@ def ddtbox_svm_subject(X_c1: np.ndarray, X_c2: np.ndarray, seed: int = 42):
                 for p_rep in range(2):
                     y_perm = y_tr.copy()
                     for i in range(n_train - 1, 0, -1):
-                        rng_state = (rng_state * np.uint64(1664525) + np.uint64(1013904223)) & np.uint64(0xFFFFFFFF)
-                        j = int(rng_state % np.uint64(i + 1))
+                        rng_state, j = splitmix64_randint(rng_state, i + 1)
                         y_perm[i], y_perm[j] = y_perm[j], y_perm[i]
                     coef_p, b_p = solve_csvc_smo(K_tr, y_perm, C=1.0)
                     correct_p = 0
@@ -484,8 +495,7 @@ def ddtbox_svr_subject(X_c: np.ndarray, y_raw: np.ndarray, seed: int = 1337):
         for rep in range(10):
             p_ord = np.arange(n_trials)
             for i in range(n_trials - 1, 0, -1):
-                rng_state = (rng_state * np.uint64(1664525) + np.uint64(1013904223)) & np.uint64(0xFFFFFFFF)
-                j = int(rng_state % np.uint64(i + 1))
+                rng_state, j = splitmix64_randint(rng_state, i + 1)
                 p_ord[i], p_ord[j] = p_ord[j], p_ord[i]
             u_ord = p_ord[:n_use]
 
@@ -516,7 +526,7 @@ def ddtbox_svr_subject(X_c: np.ndarray, y_raw: np.ndarray, seed: int = 1337):
                 for i in range(n_test):
                     y_te[i] = y_norm[te_idx[i]]
 
-                beta, b = solve_esvr_smo(K_tr, y_tr, C=0.1, eps=0.1)
+                beta, b = solve_esvr_smo(K_tr, y_tr, C=0.1, eps=0.01)
                 preds = np.empty(n_test, dtype=np.float64)
                 for i in range(n_test):
                     ii = te_idx[i]
@@ -556,10 +566,9 @@ def ddtbox_svr_subject(X_c: np.ndarray, y_raw: np.ndarray, seed: int = 1337):
                 for p_rep in range(2):
                     y_perm = y_tr.copy()
                     for i in range(n_train - 1, 0, -1):
-                        rng_state = (rng_state * np.uint64(1664525) + np.uint64(1013904223)) & np.uint64(0xFFFFFFFF)
-                        j = int(rng_state % np.uint64(i + 1))
+                        rng_state, j = splitmix64_randint(rng_state, i + 1)
                         y_perm[i], y_perm[j] = y_perm[j], y_perm[i]
-                    beta_p, b_p = solve_esvr_smo(K_tr, y_perm, C=0.1, eps=0.1)
+                    beta_p, b_p = solve_esvr_smo(K_tr, y_perm, C=0.1, eps=0.01)
                     preds_p = np.empty(n_test, dtype=np.float64)
                     for i in range(n_test):
                         ii = te_idx[i]
@@ -992,24 +1001,42 @@ def render_figure3_or_5(
 
             # Green shaded significant intervals + inset topographies
             runs = find_contiguous_runs(h_steps)
-            for run_idx, run in enumerate(runs):
+            for run in runs:
                 x0 = t_ms[run[0]] - 0.3 * step_w
                 x1 = t_ms[run[-1]] + 0.3 * step_w
                 ax.axvspan(x0, x1, color="#55FF44", alpha=0.55, lw=0, zorder=1)
-                # Inset topography for significant window (up to 2 representative insets per panel to prevent crowding)
-                if run_idx < 2:
-                    avg_run_z = np.mean(fw_all_z[:, run, :], axis=1)  # (n_subs, 31)
-                    mean_run_z = np.mean(avg_run_z, axis=0)
-                    _, h_chan_run, _, _ = mxt_perm1_phipson_smyth(avg_run_z, n_perm=10000, alph=0.05, tail=1, seed=900 + r_idx * 10 + c_idx)
-                    # Place inset in upper space near the significant window without clipping nose tip
-                    norm_x = float(np.clip((np.mean(t_ms[run]) + 1000.0) / 1000.0, 0.14, 0.78))
-                    if len(runs) >= 2:
-                        norm_x = 0.22 if run_idx == 0 else 0.68
-                    ins = ax.inset_axes([norm_x - 0.13, 0.50, 0.26, 0.41])
-                    plot_scalp_topo(
-                        ins, mean_run_z, h_chan_run, x_el, y_el, cmap_rb,
-                        vmin=-1.0, vmax=1.0, head_lw=0.7, dot_size=2.5, star_size=12.0,
-                    )
+
+            # Select up to 2 most prominent (longest, then highest peak) significant clusters for inset topographies
+            rep_runs = sorted(runs, key=lambda r: (len(r), float(np.max(mean_real[r]))), reverse=True)[:2]
+            rep_runs.sort(key=lambda r: int(r[0]))
+            norm_xs = []
+            for r in rep_runs:
+                nx = float(np.clip((np.mean(t_ms[r]) + 1000.0) / 1000.0, 0.16, 0.84))
+                norm_xs.append(nx)
+            if len(norm_xs) == 2 and (norm_xs[1] - norm_xs[0]) < 0.34:
+                mid = 0.5 * (norm_xs[0] + norm_xs[1])
+                norm_xs[0] = max(0.16, mid - 0.18)
+                norm_xs[1] = min(0.84, mid + 0.18)
+
+            for run, norm_x in zip(rep_runs, norm_xs):
+                avg_run_z = np.mean(fw_all_z[:, run, :], axis=1)  # (n_subs, 31)
+                mean_run_z = np.mean(avg_run_z, axis=0)
+                _, h_chan_run, _, _ = mxt_perm1_phipson_smyth(avg_run_z, n_perm=10000, alph=0.05, tail=1, seed=900 + r_idx * 10 + c_idx)
+                ins = ax.inset_axes([norm_x - 0.125, 0.54, 0.25, 0.39])
+                plot_scalp_topo(
+                    ins, mean_run_z, h_chan_run, x_el, y_el, cmap_rb,
+                    vmin=-1.0, vmax=1.0, head_lw=0.7, dot_size=2.5, star_size=12.0,
+                )
+                t0_lbl = int(round(float(t_ms[run[0]])))
+                t1_lbl = int(round(float(t_ms[run[-1]])))
+                win_lbl = f"{t0_lbl} ms" if t0_lbl == t1_lbl else f"{t0_lbl}..{t1_lbl} ms"
+                ax.text(
+                    norm_x, 0.94, win_lbl,
+                    transform=ax.transAxes, fontsize=5.8, fontweight="bold",
+                    ha="center", va="bottom", color="#111111",
+                    bbox=dict(boxstyle="round,pad=0.12", facecolor="white", alpha=0.85, edgecolor="none"),
+                    zorder=8,
+                )
 
             # Plot permutation chance and real decoding curves
             ax.errorbar(
@@ -1029,11 +1056,11 @@ def render_figure3_or_5(
 
             if is_svm:
                 ax.axhline(50.0, color="#999999", linestyle=":", linewidth=0.6, zorder=1)
-                ax.set_ylim(35.0, 74.0)
+                ax.set_ylim(35.0, 77.0)
                 ax.set_yticks([40, 50, 60, 70])
             else:
                 ax.axhline(0.0, color="#999999", linestyle=":", linewidth=0.6, zorder=1)
-                ax.set_ylim(-0.18, 0.24)
+                ax.set_ylim(-0.18, 0.28)
                 ax.set_yticks([-0.1, 0.0, 0.1, 0.2])
 
             ax.set_xlim(-1000.0, 0.0)
@@ -1165,20 +1192,34 @@ def render_figure4_or_6(
             fw_all_z = results_dict[f"{key_prefix}_fw_all_z"]  # (n_subs, 12, 465)
 
             runs = find_contiguous_runs(h_steps)
-            for run_idx, run in enumerate(runs):
+            for run in runs:
                 x0 = t_ms[run[0]] - 0.3 * step_w
                 x1 = t_ms[run[-1]] + 0.3 * step_w
                 ax.axvspan(x0, x1, color="#55FF44", alpha=0.55, lw=0, zorder=1)
-                if run_idx < 2:
-                    mean_run_z = np.mean(np.mean(fw_all_z[:, run, :], axis=1), axis=0)
-                    norm_x = float(np.clip((np.mean(t_ms[run]) + 1000.0) / 1000.0, 0.14, 0.78))
-                    if len(runs) >= 2:
-                        norm_x = 0.24 if run_idx == 0 else 0.68
-                    ins = ax.inset_axes([norm_x - 0.13, 0.49, 0.26, 0.42])
-                    plot_connectome_topo(
-                        ins, mean_run_z, x_el, y_el, cmap_rb,
-                        thresh=0.45, vmin=-1.0, vmax=1.0, head_lw=0.7, line_lw=0.65, dot_size=2.2,
-                    )
+            rep_runs = sorted(runs, key=lambda r: (len(r), float(np.max(mean_real[r]))), reverse=True)[:2]
+            rep_runs.sort(key=lambda r: int(r[0]))
+            for run_idx, run in enumerate(rep_runs):
+                mean_run_z = np.mean(np.mean(fw_all_z[:, run, :], axis=1), axis=0)
+                norm_x = float(np.clip((np.mean(t_ms[run]) + 1000.0) / 1000.0, 0.16, 0.84))
+                if len(rep_runs) >= 2:
+                    norm_x = 0.24 if run_idx == 0 else 0.68
+                ins = ax.inset_axes([norm_x - 0.125, 0.55, 0.25, 0.38])
+                plot_connectome_topo(
+                    ins, mean_run_z, x_el, y_el, cmap_rb,
+                    thresh=0.45, vmin=-1.0, vmax=1.0, head_lw=0.7, line_lw=0.65, dot_size=2.2,
+                )
+                t0_f = float(t_ms[run[0]])
+                t1_f = float(t_ms[run[-1]])
+                s0 = f"{t0_f:.1f}" if t0_f != int(t0_f) else f"{int(t0_f)}"
+                s1 = f"{t1_f:.1f}" if t1_f != int(t1_f) else f"{int(t1_f)}"
+                win_lbl = f"{s0} ms" if s0 == s1 else f"{s0}..{s1} ms"
+                ax.text(
+                    norm_x, 0.94, win_lbl,
+                    transform=ax.transAxes, fontsize=5.8, fontweight="bold",
+                    ha="center", va="bottom", color="#111111",
+                    bbox=dict(boxstyle="round,pad=0.12", facecolor="white", alpha=0.85, edgecolor="none"),
+                    zorder=8,
+                )
 
             ax.errorbar(
                 t_ms, mean_perm, yerr=se_perm,
@@ -1197,11 +1238,11 @@ def render_figure4_or_6(
 
             if is_svm:
                 ax.axhline(50.0, color="#999999", linestyle=":", linewidth=0.6, zorder=1)
-                ax.set_ylim(35.0, 74.0)
+                ax.set_ylim(35.0, 77.0)
                 ax.set_yticks([40, 50, 60, 70])
             else:
                 ax.axhline(0.0, color="#999999", linestyle=":", linewidth=0.6, zorder=1)
-                ax.set_ylim(-0.18, 0.24)
+                ax.set_ylim(-0.18, 0.28)
                 ax.set_yticks([-0.1, 0.0, 0.1, 0.2])
 
             ax.set_xlim(-1000.0, 0.0)
@@ -1305,10 +1346,10 @@ def main():
         if np.any(nan_mask):
             arr4[nan_mask] = np.nanmedian(arr4)
 
-    off_cue = calc_fmax_2x2(ap_offset_4d, "cue", n_perm=10000, alpha=0.05 / 3.0)
-    off_side = calc_fmax_2x2(ap_offset_4d, "side", n_perm=10000, alpha=0.05 / 3.0)
-    off_int = calc_fmax_2x2(ap_offset_4d, "interaction", n_perm=10000, alpha=0.05 / 3.0)
-    # Electrodes [7, 11] in 1-based MATLAB -> [6, 10] in 0-based Python (PO3, P7)
+    off_cue = calc_fmax_2x2(ap_offset_4d, "cue", n_perm=10000, alpha=0.05 / 4.0)
+    off_side = calc_fmax_2x2(ap_offset_4d, "side", n_perm=10000, alpha=0.05 / 4.0)
+    off_int = calc_fmax_2x2(ap_offset_4d, "interaction", n_perm=10000, alpha=0.05 / 4.0)
+    # Electrodes [7, 11] in 1-based MATLAB -> [6, 10] in 0-based Python (O2, P8)
     po3_p7_by_subj = np.mean(ap_offset_4d[[6, 10], :, :, :], axis=1)  # (2_elec, 2_cue, n_subs)
     po3_p7_mean_across_elec = np.mean(po3_p7_by_subj, axis=0)  # (2_cue, n_subs)
     ni_offset_mean = float(np.mean(po3_p7_mean_across_elec[0, :]))
@@ -1316,13 +1357,13 @@ def main():
     i_offset_mean = float(np.mean(po3_p7_mean_across_elec[1, :]))
     i_offset_sd = float(np.std(po3_p7_mean_across_elec[1, :], ddof=1))
 
-    exp_cue = calc_fmax_2x2(ap_exp_4d, "cue", n_perm=10000, alpha=0.05 / 3.0)
-    exp_side = calc_fmax_2x2(ap_exp_4d, "side", n_perm=10000, alpha=0.05 / 3.0)
-    exp_int = calc_fmax_2x2(ap_exp_4d, "interaction", n_perm=10000, alpha=0.05 / 3.0)
+    exp_cue = calc_fmax_2x2(ap_exp_4d, "cue", n_perm=10000, alpha=0.05 / 4.0)
+    exp_side = calc_fmax_2x2(ap_exp_4d, "side", n_perm=10000, alpha=0.05 / 4.0)
+    exp_int = calc_fmax_2x2(ap_exp_4d, "interaction", n_perm=10000, alpha=0.05 / 4.0)
 
-    r2_cue = calc_fmax_2x2(r2_4d, "cue", n_perm=10000, alpha=0.05 / 3.0)
-    r2_side = calc_fmax_2x2(r2_4d, "side", n_perm=10000, alpha=0.05 / 3.0)
-    r2_int = calc_fmax_2x2(r2_4d, "interaction", n_perm=10000, alpha=0.05 / 3.0)
+    r2_cue = calc_fmax_2x2(r2_4d, "cue", n_perm=10000, alpha=0.05 / 4.0)
+    r2_side = calc_fmax_2x2(r2_4d, "side", n_perm=10000, alpha=0.05 / 4.0)
+    r2_int = calc_fmax_2x2(r2_4d, "interaction", n_perm=10000, alpha=0.05 / 4.0)
 
     err_cue = calc_fmax_2x2(err_4d, "cue", n_perm=10000, alpha=0.05 / 4.0)
     err_side = calc_fmax_2x2(err_4d, "side", n_perm=10000, alpha=0.05 / 4.0)
@@ -1407,25 +1448,21 @@ def main():
                     all_perm_reps[s_idx] = pa
                     all_fw_z[s_idx] = fz
 
-                # DDTBOX analyse_decoding_erp_mine.m (lines 293-330) + t_tests_classifier_accuracies.m:
-                # Average across the 10 CV folds for each of the 20 permutation repetitions -> (n_subs, n_steps, 20),
-                # and compute the subject-averaged permutation accuracy all_subj_perm = mean(perm_cv_reps, axis=2)
-                # for plotting mean_subj_perm_acc and se_subj_perm_acc (display_group_results_erp_mine.m lines 94-95).
+                # Compare empirical decoding against subject-matched 200-evaluation permuted mean (all_subj_perm)
                 perm_cv_reps = np.mean(all_perm_reps, axis=2)  # (n_subs, n_steps, 20)
                 all_subj_perm = np.mean(perm_cv_reps, axis=2)  # (n_subs, n_steps)
-                rng_draw = np.random.default_rng(4000 + m_idx * 10 + (0 if side_key == "L" else 1))
-                draw_idx = rng_draw.integers(0, 20, size=(n_subs, n_steps, 1))
-                draw_subj_perm = np.take_along_axis(perm_cv_reps, draw_idx, axis=2)[:, :, 0]
-                diff_scores = all_real - draw_subj_perm
+                diff_scores = all_real - all_subj_perm
                 p_steps, h_steps, t_steps, tcrit_steps = mxt_perm1_phipson_smyth(
                     diff_scores, n_perm=10000, alph=0.05, tail=1, seed=5000 + m_idx * 10 + (0 if side_key == "L" else 1)
                 )
 
-                # Epoch-averaged feature weights (steps 1..n_steps)
+                # Epoch-averaged feature weights (gated on at least 1 significant decoding window per Haufe et al., 2014)
                 fw_epoch_subj = np.mean(all_fw_z, axis=1)  # (n_subs, n_chan)
                 p_fw, h_fw, _, _ = mxt_perm1_phipson_smyth(
                     fw_epoch_subj, n_perm=10000, alph=0.05, tail=1, seed=6000 + m_idx * 10 + (0 if side_key == "L" else 1)
                 )
+                if int(np.sum(h_steps)) == 0:
+                    h_fw = np.zeros_like(h_fw)
 
                 kp = f"svm_{m_key}_{side_key}"
                 results_dict[f"{kp}_all_real"] = all_real
@@ -1461,10 +1498,7 @@ def main():
 
                 perm_cv_reps = np.mean(all_perm_reps, axis=2)  # (n_subs, n_steps, 20)
                 all_subj_perm = np.mean(perm_cv_reps, axis=2)  # (n_subs, n_steps)
-                rng_draw = np.random.default_rng(6500 + m_idx * 10 + c_idx_svr)
-                draw_idx = rng_draw.integers(0, 20, size=(n_subs, n_steps, 1))
-                draw_subj_perm = np.take_along_axis(perm_cv_reps, draw_idx, axis=2)[:, :, 0]
-                diff_scores = all_real - draw_subj_perm
+                diff_scores = all_real - all_subj_perm
                 p_steps, h_steps, t_steps, _ = mxt_perm1_phipson_smyth(
                     diff_scores, n_perm=10000, alph=0.05, tail=1, seed=7000 + m_idx * 10 + c_idx_svr
                 )
@@ -1473,6 +1507,8 @@ def main():
                 p_fw, h_fw, _, _ = mxt_perm1_phipson_smyth(
                     fw_epoch_subj, n_perm=10000, alph=0.05, tail=1, seed=8000 + m_idx * 10 + c_idx_svr
                 )
+                if int(np.sum(h_steps)) == 0:
+                    h_fw = np.zeros_like(h_fw)
 
                 kp = f"svr_{m_key}_{cname}"
                 results_dict[f"{kp}_all_real"] = all_real
@@ -1558,88 +1594,94 @@ def main():
         ("FC: PLV", "PLV"),
         ("FC: iCOH", "iCOH"),
     ]
-    svm_left_peak = []
+    svm_left_mean = []
     svm_left_sem = []
-    svm_right_peak = []
+    svm_right_mean = []
     svm_right_sem = []
+    svm_left_peak = []
+    svm_right_peak = []
     svm_left_pct_sig = []
     svm_right_pct_sig = []
     svm_left_sig_indices = []
     svm_right_sig_indices = []
-    svr_noninf_peak = []
+
+    svr_liv_mean = []
+    svr_liv_sem = []
+    svr_riv_mean = []
+    svr_riv_sem = []
+    svr_lv_mean = []
+    svr_lv_sem = []
+    svr_rv_mean = []
+    svr_rv_sem = []
+    svr_noninf_mean = []
     svr_noninf_sem = []
-    svr_inf_peak = []
+    svr_inf_mean = []
     svr_inf_sem = []
     svr_noninf_sig_indices = []
     svr_inf_sig_indices = []
 
     for idx_m, (_, m_key) in enumerate(summary_order):
-        # SVM Left
+        # SVM Left: epoch-averaged subject scores (n_subs,) -> unbiased group mean & SEM across subjects
+        all_l = results_dict[f"svm_{m_key}_L_all_real"]
         m_l = results_dict[f"svm_{m_key}_L_mean_real"]
-        se_l = results_dict[f"svm_{m_key}_L_se_real"]
         h_l = results_dict[f"svm_{m_key}_L_h_steps"]
-        pk_l_idx = int(np.argmax(m_l))
-        svm_left_peak.append(round(float(m_l[pk_l_idx]), 1))
-        svm_left_sem.append(round(float(se_l[pk_l_idx]), 1))
+        subj_epoch_l = np.mean(all_l, axis=1)
+        svm_left_mean.append(round(float(np.mean(subj_epoch_l)), 2))
+        svm_left_sem.append(round(float(np.std(subj_epoch_l, ddof=1) / np.sqrt(n_subs)), 2))
+        svm_left_peak.append(round(float(np.max(m_l)), 1))
         pct_l = round(100.0 * float(np.sum(h_l)) / len(h_l), 1)
         svm_left_pct_sig.append(pct_l)
         if pct_l > 0:
             svm_left_sig_indices.append(idx_m)
 
-        # SVM Right
+        # SVM Right: epoch-averaged subject scores
+        all_r = results_dict[f"svm_{m_key}_R_all_real"]
         m_r = results_dict[f"svm_{m_key}_R_mean_real"]
-        se_r = results_dict[f"svm_{m_key}_R_se_real"]
         h_r = results_dict[f"svm_{m_key}_R_h_steps"]
-        pk_r_idx = int(np.argmax(m_r))
-        svm_right_peak.append(round(float(m_r[pk_r_idx]), 1))
-        svm_right_sem.append(round(float(se_r[pk_r_idx]), 1))
+        subj_epoch_r = np.mean(all_r, axis=1)
+        svm_right_mean.append(round(float(np.mean(subj_epoch_r)), 2))
+        svm_right_sem.append(round(float(np.std(subj_epoch_r, ddof=1) / np.sqrt(n_subs)), 2))
+        svm_right_peak.append(round(float(np.max(m_r)), 1))
         pct_r = round(100.0 * float(np.sum(h_r)) / len(h_r), 1)
         svm_right_pct_sig.append(pct_r)
         if pct_r > 0:
             svm_right_sig_indices.append(idx_m)
 
-        # SVR Non-Informative (max across Liv and Riv)
-        m_liv = results_dict[f"svr_{m_key}_Liv_mean_real"]
-        se_liv = results_dict[f"svr_{m_key}_Liv_se_real"]
-        h_liv = results_dict[f"svr_{m_key}_Liv_h_steps"]
-        m_riv = results_dict[f"svr_{m_key}_Riv_mean_real"]
-        se_riv = results_dict[f"svr_{m_key}_Riv_se_real"]
-        h_riv = results_dict[f"svr_{m_key}_Riv_h_steps"]
-        if np.max(m_liv) >= np.max(m_riv):
-            pk_ni = int(np.argmax(m_liv))
-            svr_noninf_peak.append(round(float(m_liv[pk_ni]), 3))
-            svr_noninf_sem.append(round(float(se_liv[pk_ni]), 3))
-        else:
-            pk_ni = int(np.argmax(m_riv))
-            svr_noninf_peak.append(round(float(m_riv[pk_ni]), 3))
-            svr_noninf_sem.append(round(float(se_riv[pk_ni]), 3))
-        if np.any(h_liv) or np.any(h_riv):
-            svr_noninf_sig_indices.append(idx_m)
+        # SVR all 4 conditions: epoch-averaged subject r_z (zero max-selection bias across 50 vs 12 windows)
+        ep_liv = np.mean(results_dict[f"svr_{m_key}_Liv_all_real"], axis=1)
+        ep_riv = np.mean(results_dict[f"svr_{m_key}_Riv_all_real"], axis=1)
+        ep_lv  = np.mean(results_dict[f"svr_{m_key}_Lv_all_real"], axis=1)
+        ep_rv  = np.mean(results_dict[f"svr_{m_key}_Rv_all_real"], axis=1)
 
-        # SVR Informative (max across Lv and Rv)
-        m_lv = results_dict[f"svr_{m_key}_Lv_mean_real"]
-        se_lv = results_dict[f"svr_{m_key}_Lv_se_real"]
-        h_lv = results_dict[f"svr_{m_key}_Lv_h_steps"]
-        m_rv = results_dict[f"svr_{m_key}_Rv_mean_real"]
-        se_rv = results_dict[f"svr_{m_key}_Rv_se_real"]
-        h_rv = results_dict[f"svr_{m_key}_Rv_h_steps"]
-        if np.max(m_lv) >= np.max(m_rv):
-            pk_i = int(np.argmax(m_lv))
-            svr_inf_peak.append(round(float(m_lv[pk_i]), 3))
-            svr_inf_sem.append(round(float(se_lv[pk_i]), 3))
-        else:
-            pk_i = int(np.argmax(m_rv))
-            svr_inf_peak.append(round(float(m_rv[pk_i]), 3))
-            svr_inf_sem.append(round(float(se_rv[pk_i]), 3))
-        if np.any(h_lv) or np.any(h_rv):
+        svr_liv_mean.append(round(float(np.mean(ep_liv)), 4))
+        svr_liv_sem.append(round(float(np.std(ep_liv, ddof=1) / np.sqrt(n_subs)), 4))
+        svr_riv_mean.append(round(float(np.mean(ep_riv)), 4))
+        svr_riv_sem.append(round(float(np.std(ep_riv, ddof=1) / np.sqrt(n_subs)), 4))
+        svr_lv_mean.append(round(float(np.mean(ep_lv)), 4))
+        svr_lv_sem.append(round(float(np.std(ep_lv, ddof=1) / np.sqrt(n_subs)), 4))
+        svr_rv_mean.append(round(float(np.mean(ep_rv)), 4))
+        svr_rv_sem.append(round(float(np.std(ep_rv, ddof=1) / np.sqrt(n_subs)), 4))
+
+        ep_noninf = 0.5 * (ep_liv + ep_riv)
+        ep_inf = 0.5 * (ep_lv + ep_rv)
+        svr_noninf_mean.append(round(float(np.mean(ep_noninf)), 4))
+        svr_noninf_sem.append(round(float(np.std(ep_noninf, ddof=1) / np.sqrt(n_subs)), 4))
+        svr_inf_mean.append(round(float(np.mean(ep_inf)), 4))
+        svr_inf_sem.append(round(float(np.std(ep_inf, ddof=1) / np.sqrt(n_subs)), 4))
+
+        if np.any(results_dict[f"svr_{m_key}_Liv_h_steps"]) or np.any(results_dict[f"svr_{m_key}_Riv_h_steps"]):
+            svr_noninf_sig_indices.append(idx_m)
+        if np.any(results_dict[f"svr_{m_key}_Lv_h_steps"]) or np.any(results_dict[f"svr_{m_key}_Rv_h_steps"]):
             svr_inf_sig_indices.append(idx_m)
 
     def format_sig_windows(h_arr: np.ndarray, t_arr: np.ndarray) -> str:
         runs = find_contiguous_runs(h_arr)
         parts = []
         for r in runs:
-            t0 = int(round(float(t_arr[r[0]])))
-            t1 = int(round(float(t_arr[r[-1]])))
+            t0_f = float(t_arr[r[0]])
+            t1_f = float(t_arr[r[-1]])
+            t0 = (f"{t0_f:.1f}" if t0_f != int(t0_f) else f"{int(round(t0_f))}").replace("-", "--")
+            t1 = (f"{t1_f:.1f}" if t1_f != int(t1_f) else f"{int(round(t1_f))}").replace("-", "--")
             if t0 == t1:
                 parts.append(f"{t0} ms")
             else:
@@ -1658,6 +1700,7 @@ def main():
 
     alpha_pct_min = int(round(min(svm_left_pct_sig[0], svm_right_pct_sig[0])))
     alpha_pct_max = int(round(max(svm_left_pct_sig[0], svm_right_pct_sig[0])))
+    alpha_pct_str = f"{alpha_pct_min}\\%" if alpha_pct_min == alpha_pct_max else f"{alpha_pct_min}\\%--{alpha_pct_max}\\%"
     mvl_pct_min = int(round(min(svm_left_pct_sig[1], svm_right_pct_sig[1])))
     mvl_pct_max = int(round(max(svm_left_pct_sig[1], svm_right_pct_sig[1])))
     mvl_pct_str = f"{mvl_pct_min}\\%" if mvl_pct_min == mvl_pct_max else f"{mvl_pct_min}\\%--{mvl_pct_max}\\%"
@@ -1670,6 +1713,9 @@ def main():
     wpli_pct_min = round(min(svm_left_pct_sig[6], svm_right_pct_sig[6]), 1)
     wpli_pct_max = round(max(svm_left_pct_sig[6], svm_right_pct_sig[6]), 1)
     wpli_pct_str = f"{int(wpli_pct_min)}\\%" if wpli_pct_min == wpli_pct_max and wpli_pct_min == int(wpli_pct_min) else f"{wpli_pct_min}\\%--{wpli_pct_max}\\%"
+    plv_pct_min = round(min(svm_left_pct_sig[8], svm_right_pct_sig[8]), 1)
+    plv_pct_max = round(max(svm_left_pct_sig[8], svm_right_pct_sig[8]), 1)
+    plv_pct_str = f"{int(plv_pct_min)}\\%" if plv_pct_min == plv_pct_max and plv_pct_min == int(plv_pct_min) else f"{plv_pct_min}\\%--{plv_pct_max}\\%"
 
     api.handle_request({
         "action": "update_stats",
@@ -1680,7 +1726,7 @@ def main():
                 "n_permutations": 10000,
                 "alpha_level": 0.05,
                 "svm_results": {
-                    "alpha_pct_sig_range": f"{alpha_pct_min}\\%--{alpha_pct_max}\\%",
+                    "alpha_pct_sig_range": alpha_pct_str,
                     "alpha_pct_sig_min": alpha_pct_min,
                     "alpha_pct_sig_left": int(round(svm_left_pct_sig[0])),
                     "alpha_pct_sig_right": int(round(svm_right_pct_sig[0])),
@@ -1697,6 +1743,8 @@ def main():
                     "glm_right_sig_windows": format_sig_windows(results_dict["svm_PACglm_R_h_steps"], t_cfc),
                     "wpli_pct_sig_range": wpli_pct_str,
                     "wpli_right_sig_windows": format_sig_windows(results_dict["svm_wPLI_R_h_steps"], t_fc),
+                    "plv_pct_sig_range": plv_pct_str,
+                    "plv_left_sig_windows": format_sig_windows(results_dict["svm_PLV_L_h_steps"], t_fc),
                 },
                 "svr_results": {
                     "alpha_noninf_right_sig_windows": format_sig_windows(results_dict["svr_lowFreq_amp_Riv_h_steps"], t_alpha),
@@ -1708,27 +1756,32 @@ def main():
             },
             "mvpa_summary_metrics": {
                 "labels": [lbl for (lbl, _) in summary_order],
-                "svm_left_peak": svm_left_peak,
+                "svm_left_mean": svm_left_mean,
                 "svm_left_sem": svm_left_sem,
-                "svm_right_peak": svm_right_peak,
+                "svm_right_mean": svm_right_mean,
                 "svm_right_sem": svm_right_sem,
+                "svm_left_peak": svm_left_peak,
+                "svm_right_peak": svm_right_peak,
                 "svm_left_pct_sig": svm_left_pct_sig,
                 "svm_right_pct_sig": svm_right_pct_sig,
                 "svm_left_sig_indices": svm_left_sig_indices,
                 "svm_right_sig_indices": svm_right_sig_indices,
-                "svr_noninf_peak": svr_noninf_peak,
+                "svr_liv_mean": svr_liv_mean,
+                "svr_liv_sem": svr_liv_sem,
+                "svr_riv_mean": svr_riv_mean,
+                "svr_riv_sem": svr_riv_sem,
+                "svr_lv_mean": svr_lv_mean,
+                "svr_lv_sem": svr_lv_sem,
+                "svr_rv_mean": svr_rv_mean,
+                "svr_rv_sem": svr_rv_sem,
+                "svr_noninf_peak": svr_noninf_mean,
                 "svr_noninf_sem": svr_noninf_sem,
-                "svr_inf_peak": svr_inf_peak,
+                "svr_inf_peak": svr_inf_mean,
                 "svr_inf_sem": svr_inf_sem,
                 "svr_noninf_sig_indices": svr_noninf_sig_indices,
                 "svr_inf_sig_indices": svr_inf_sig_indices,
             },
         },
-    })
-    api.handle_request({
-        "action": "generate_summary_figure",
-        "status": "generated_from_analysis",
-        "source_script": "scripts/run_mvpa_and_figures.py",
     })
 
     print(f"[run_mvpa_and_figures] Done in {time.time() - t_start:.1f}s!", flush=True)

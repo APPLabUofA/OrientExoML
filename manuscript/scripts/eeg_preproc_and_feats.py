@@ -323,7 +323,8 @@ def extract_cfc_features_fast(
     # High-frequency gamma [15, 60] Hz across all channels & trials at once
     filt_high = butter_bandpass_twopass(padded, 15.0, 60.0, fs=fs, order=4)
     analytic_high = sig.hilbert(filt_high, axis=-1)
-    amp_high_all = np.abs(analytic_high[:, :, s_pre:e_pre])  # (31, n_trials, 1001)
+    amp_high_padded = np.abs(analytic_high)  # (31, n_trials, 5000)
+    amp_high_all = amp_high_padded[:, :, s_pre:e_pre]  # (31, n_trials, 1001)
 
     # Low-frequency filter per channel around iaf_per_chan[ch] +/- 1 Hz
     phase_low_all = np.empty((n_chan, n_trials, Ntime), dtype=np.float64)
@@ -338,8 +339,9 @@ def extract_cfc_features_fast(
         an_low = sig.hilbert(filt_low, axis=-1)[:, s_pre:e_pre]
         phase_low_all[ch] = np.angle(an_low)
         amp_low_all[ch] = np.abs(an_low)
-        # For cohen_PLV: phase of Hilbert-transformed high-frequency amplitude envelope
-        an_ampH = sig.hilbert(amp_high_all[ch], axis=-1)
+        # For cohen_PLV (Cohen 2008; pacMEG.m): bandpass-filter gamma amplitude envelope at alpha (lf +/- 1 Hz) prior to Hilbert transform
+        filt_ampH = butter_bandpass_twopass(amp_high_padded[ch], lf - 1.0, lf + 1.0, fs=fs, order=4)
+        an_ampH = sig.hilbert(filt_ampH, axis=-1)[:, s_pre:e_pre]
         phase_ampH_all[ch] = np.angle(an_ampH)
 
     # 1. lowFreq_amp: first 1000 samples of amp_low_all -> (31, n_trials, 1000) -> (50, 20, 31, n_trials)
@@ -363,19 +365,8 @@ def extract_cfc_features_fast(
     pac_plv = (np.abs(win_sum(z_plv)) / winSize).reshape(n_chan, n_trials, 50, 15)
     feat_PACplv = np.transpose(pac_plv, (2, 3, 0, 1)).astype(np.float32)
 
-    # 4. PACtort (Tort KL Modulation Index with 18 phase bins)
-    nbins = 18
-    phase_2pi = np.mod(phase_low_all, 2.0 * np.pi)
-    bin_idx = np.clip((phase_2pi / (2.0 * np.pi / nbins)).astype(np.int32), 0, nbins - 1)
-    bin_means = np.empty((nbins, n_chan, n_trials, n_steps), dtype=np.float64)
-    for b in range(nbins):
-        mask_b = (bin_idx == b).astype(np.float64)
-        cnt_b = win_sum(mask_b)
-        sum_b = win_sum(amp_high_all * mask_b)
-        bin_means[b] = np.where(cnt_b > 0, sum_b / np.maximum(cnt_b, 1.0), 1e-12)
-    P_bins = bin_means / np.maximum(np.sum(bin_means, axis=0, keepdims=True), 1e-15)
-    P_bins = np.maximum(P_bins, 1e-12)
-    kl_mi = np.sum(P_bins * np.log(P_bins * nbins), axis=0) / np.log(nbins)
+    # 4. PACtort (Tort KL Modulation Index with 18 phase bins, iteratively halved if empty bins occur per eeg_klmi_OrientExo_ML.m)
+    kl_mi = compute_mi_tort_numba(phase_low_all, amp_high_all, winSize, n_steps)
     pac_tort = kl_mi.reshape(n_chan, n_trials, 50, 15)
     feat_PACtort = np.transpose(pac_tort, (2, 3, 0, 1)).astype(np.float32)
 
@@ -420,6 +411,106 @@ def extract_cfc_features_fast(
         "PACglm": feat_PACglm,
         "PACplv": feat_PACplv,
     }
+
+
+@njit(parallel=True, fastmath=True)
+def compute_mi_tort_numba(phase_low: np.ndarray, amp_high: np.ndarray, winSize: int = 250, n_steps: int = 750) -> np.ndarray:
+    """
+    Tort et al. (2008, 2010) KL Modulation Index matching eeg_klmi_OrientExo_ML.m:
+    Starts with nbins = 18 across [-pi, pi] (or [0, 2pi]) and iteratively halves
+    nbins (18 -> 9 -> 4 -> 2) if any phase bin in the 250-ms window is empty.
+    """
+    n_chan, n_trials, Ntime = phase_low.shape
+    out = np.empty((n_chan, n_trials, n_steps), dtype=np.float32)
+    two_pi = 2.0 * np.pi
+    for ch in prange(n_chan):
+        for tr in range(n_trials):
+            ph = np.empty(Ntime, dtype=np.float64)
+            for t in range(Ntime):
+                v = phase_low[ch, tr, t] % two_pi
+                if v < 0.0:
+                    v += two_pi
+                ph[t] = v
+            ah = amp_high[ch, tr]
+            # Pre-bin for nbins = 18; if any bin count == 0 in sliding window, halve nbins
+            b18 = np.empty(Ntime, dtype=np.int32)
+            for t in range(Ntime):
+                bi = int(ph[t] / (two_pi / 18.0))
+                if bi >= 18:
+                    bi = 17
+                b18[t] = bi
+            cnt18 = np.zeros(18, dtype=np.int32)
+            sum18 = np.zeros(18, dtype=np.float64)
+            for t in range(winSize):
+                bi = b18[t]
+                cnt18[bi] += 1
+                sum18[bi] += ah[t]
+            for step in range(n_steps):
+                if step > 0:
+                    old_b = b18[step - 1]
+                    new_b = b18[step + winSize - 1]
+                    cnt18[old_b] -= 1
+                    sum18[old_b] -= ah[step - 1]
+                    cnt18[new_b] += 1
+                    sum18[new_b] += ah[step + winSize - 1]
+                has_zero = False
+                for b in range(18):
+                    if cnt18[b] == 0:
+                        has_zero = True
+                        break
+                if not has_zero:
+                    tot = 0.0
+                    means = np.empty(18, dtype=np.float64)
+                    for b in range(18):
+                        m = sum18[b] / cnt18[b]
+                        means[b] = m
+                        tot += m
+                    if tot <= 1e-15:
+                        out[ch, tr, step] = 0.0
+                    else:
+                        kl = 0.0
+                        for b in range(18):
+                            p = means[b] / tot
+                            if p > 1e-15:
+                                kl += p * np.log(p * 18.0)
+                        out[ch, tr, step] = kl / np.log(18.0)
+                else:
+                    # Iteratively halve nbins (9, 4, 2) until all bins are non-empty
+                    nb = 9
+                    while nb >= 2:
+                        cnt_nb = np.zeros(nb, dtype=np.int32)
+                        sum_nb = np.zeros(nb, dtype=np.float64)
+                        bw = two_pi / nb
+                        for t in range(step, step + winSize):
+                            bi = int(ph[t] / bw)
+                            if bi >= nb:
+                                bi = nb - 1
+                            cnt_nb[bi] += 1
+                            sum_nb[bi] += ah[t]
+                        z_nb = False
+                        for b in range(nb):
+                            if cnt_nb[b] == 0:
+                                z_nb = True
+                                break
+                        if not z_nb or nb == 2:
+                            tot = 0.0
+                            means = np.empty(nb, dtype=np.float64)
+                            for b in range(nb):
+                                m = sum_nb[b] / cnt_nb[b] if cnt_nb[b] > 0 else 0.0
+                                means[b] = m
+                                tot += m
+                            if tot <= 1e-15:
+                                out[ch, tr, step] = 0.0
+                            else:
+                                kl = 0.0
+                                for b in range(nb):
+                                    p = means[b] / tot
+                                    if p > 1e-15:
+                                        kl += p * np.log(p * nb)
+                                out[ch, tr, step] = kl / np.log(float(nb))
+                            break
+                        nb = nb // 2
+    return out
 
 
 @njit(parallel=True, fastmath=True)
@@ -621,15 +712,19 @@ def fooof_batch_numba(freqs: np.ndarray, psds: np.ndarray):
             for k in range(K):
                 L[k] = np.log10(max(psds[ch, tr, idx_list[k]], 1e-30))
 
+            # FOOOF v1.0.0 robust initial aperiodic fit using lower-percentile points (Donoghue et al., 2020)
             slope_init = (L[K - 1] - L[0]) / (log_f[K - 1] - log_f[0])
             off_init = L[0] - slope_init * log_f[0]
             flat_init = np.empty(K, dtype=np.float64)
             for k in range(K):
                 flat_init[k] = L[k] - (off_init + slope_init * log_f[k])
-            med_flat = np.median(flat_init)
+            # Take lowest 15% of flattened spectrum points (at least 4 points on 24-bin Welch grid)
+            sorted_flat = np.sort(flat_init)
+            pct_idx = max(3, int(0.15 * K))
+            thresh_ap = sorted_flat[pct_idx]
             sx = 0.0; sy = 0.0; sxx = 0.0; sxy = 0.0; cnt = 0
             for k in range(K):
-                if flat_init[k] <= med_flat:
+                if flat_init[k] <= thresh_ap:
                     x = log_f[k]
                     y = L[k]
                     sx += x; sy += y; sxx += x * x; sxy += x * y; cnt += 1
@@ -648,9 +743,11 @@ def fooof_batch_numba(freqs: np.ndarray, psds: np.ndarray):
 
             best_alpha_cf = np.nan
             best_alpha_h = -1.0
+            # Exact conversion FWHM = 2 * sqrt(2 * ln(2)) * sd = 2.354820045 * sd
+            fwhm_to_sd = 2.0 * np.sqrt(2.0 * np.log(2.0))
             for _ in range(7):
                 std_f = np.std(F)
-                thresh = max(0.22, 0.2 * std_f)
+                thresh = max(0.22, 0.20 * std_f)
                 max_idx = 0
                 max_val = F[0]
                 for k in range(1, K):
@@ -675,15 +772,23 @@ def fooof_batch_numba(freqs: np.ndarray, psds: np.ndarray):
                 left_f = f_sub[0]
                 for k in range(max_idx, -1, -1):
                     if F[k] <= half_h:
-                        left_f = f_sub[k]
+                        if k < max_idx and F[k + 1] > F[k]:
+                            frac = (half_h - F[k]) / (F[k + 1] - F[k])
+                            left_f = f_sub[k] + frac * (f_sub[k + 1] - f_sub[k])
+                        else:
+                            left_f = f_sub[k]
                         break
                 right_f = f_sub[K - 1]
                 for k in range(max_idx, K):
                     if F[k] <= half_h:
-                        right_f = f_sub[k]
+                        if k > max_idx and F[k - 1] > F[k]:
+                            frac = (half_h - F[k]) / (F[k - 1] - F[k])
+                            right_f = f_sub[k] - frac * (f_sub[k] - f_sub[k - 1])
+                        else:
+                            right_f = f_sub[k]
                         break
                 fwhm = max(min(right_f - left_f, 5.0), 1.0)
-                sd = fwhm / 2.0
+                sd = fwhm / fwhm_to_sd
                 for k in range(K):
                     g = h * np.exp(-((f_sub[k] - cf) ** 2) / (2.0 * sd * sd))
                     F[k] -= g
@@ -733,12 +838,12 @@ def fooof_batch_numba(freqs: np.ndarray, psds: np.ndarray):
 
 def run_fooof_on_condition(cond_data: np.ndarray, fs: float = 1000.0) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Runs FOOOF spectral parameterization on pre-stimulus [-1000, 0] ms Welch PSDs (nperseg=500)
+    Runs FOOOF spectral parameterization on pre-stimulus [-1000, 0] ms Welch PSDs (nperseg=500, detrend=False)
     across all 31 channels and trials for one condition.
     Returns (iaf_per_chan, aperiodic_medians_31x2, r2_medians_31, err_medians_31).
     """
     pre_data = np.transpose(cond_data[:, 1400:2401, :], (0, 2, 1))  # (31, n_trials, 1001)
-    freqs, psds = sig.welch(pre_data, fs=fs, window="hamming", nperseg=500, noverlap=250, nfft=512, axis=-1)
+    freqs, psds = sig.welch(pre_data, fs=fs, window="hamming", nperseg=500, noverlap=250, nfft=512, detrend=False, axis=-1)
     iaf_tr, ap_tr, r2_tr, err_tr = fooof_batch_numba(freqs, psds)
     iaf_per_chan = np.nanmedian(iaf_tr, axis=1)
     ap_med = np.nanmedian(ap_tr, axis=1)
@@ -747,15 +852,27 @@ def run_fooof_on_condition(cond_data: np.ndarray, fs: float = 1000.0) -> Tuple[n
     return iaf_per_chan, ap_med, r2_med, err_med
 
 
-def process_single_subject(subj_id: str) -> Dict[str, Any]:
+def process_single_subject(subj_id: str, force_cfc_fooof: bool = False) -> Dict[str, Any]:
     """
     Runs the complete preprocessing, FOOOF, and 10-feature extraction for a single subject
     and caches the result in `data/cache/{subj_id}_feats.npz`.
+    If force_cfc_fooof is True and cache_file exists, reuses the cached 8-14 Hz functional
+    connectivity matrices (PLV, corr, iCOH, wPLI) while recomputing FOOOF and all 6 local
+    alpha/CFC metrics (lowFreq_amp, AAC, PACoz, PACtort, PACglm, PACplv).
     """
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     cache_file = CACHE_DIR / f"{subj_id}_feats.npz"
-    if cache_file.exists():
+    if cache_file.exists() and not force_cfc_fooof:
         return {"subj_id": subj_id, "status": "cached", "cache_file": str(cache_file)}
+
+    existing_fc = {}
+    if cache_file.exists() and force_cfc_fooof:
+        old_npz = np.load(cache_file)
+        for cname in ("Liv", "Lv", "Riv", "Rv"):
+            for mname in ("PLV", "corr", "iCOH", "wPLI"):
+                k = f"feat_{mname}_{cname}"
+                if k in old_npz:
+                    existing_fc[k] = old_npz[k]
 
     eeg_file = EEG_DIR / f"{subj_id}_Orient_Exo_Exp.eeg"
     vmrk_file = EEG_DIR / f"{subj_id}_Orient_Exo_Exp.vmrk"
@@ -900,10 +1017,14 @@ def process_single_subject(subj_id: str) -> Dict[str, Any]:
         for mname, arr in cfc_feats.items():
             save_dict[f"feat_{mname}_{cname}"] = arr
 
-        # Functional Connectivity features
-        fc_feats = extract_fc_features_fast(c_epochs, L_op, fs=1000.0)
-        for mname, arr in fc_feats.items():
-            save_dict[f"feat_{mname}_{cname}"] = arr
+        # Functional Connectivity features (reuse if force_cfc_fooof and present)
+        if all(f"feat_{m}_{cname}" in existing_fc for m in ("PLV", "corr", "iCOH", "wPLI")):
+            for mname in ("PLV", "corr", "iCOH", "wPLI"):
+                save_dict[f"feat_{mname}_{cname}"] = existing_fc[f"feat_{mname}_{cname}"]
+        else:
+            fc_feats = extract_fc_features_fast(c_epochs, L_op, fs=1000.0)
+            for mname, arr in fc_feats.items():
+                save_dict[f"feat_{mname}_{cname}"] = arr
 
     np.savez(cache_file, **save_dict)
     dt = time.time() - t0
@@ -912,15 +1033,17 @@ def process_single_subject(subj_id: str) -> Dict[str, Any]:
 
 
 def main():
+    import sys
+    force_cfc_fooof = "--update-cfc-fooof" in sys.argv
     avail = [
         s for s in INCLUDED_PARTICIPANTS
         if (EEG_DIR / f"{s}_Orient_Exo_Exp.eeg").exists()
         and (EEG_DIR / f"{s}_Orient_Exo_Exp.vmrk").exists()
     ]
-    print(f"[eeg_preproc_and_feats] Processing {len(avail)} available subjects with Numba multi-core acceleration...", flush=True)
+    print(f"[eeg_preproc_and_feats] Processing {len(avail)} available subjects (force_cfc_fooof={force_cfc_fooof})...", flush=True)
     results = []
     for idx, s in enumerate(avail, 1):
-        r = process_single_subject(s)
+        r = process_single_subject(s, force_cfc_fooof=force_cfc_fooof)
         results.append(r)
         print(f"  [{idx}/{len(avail)}] {r}", flush=True)
 

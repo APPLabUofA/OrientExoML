@@ -26,10 +26,12 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 MANUSCRIPT_DIR = SCRIPTS_DIR.parent
 PROJECT_ROOT = MANUSCRIPT_DIR.parent
 DATA_DIR = PROJECT_ROOT / "data" / "behavior"
+CACHE_DIR = PROJECT_ROOT / "data" / "cache"
 FIGURES_DIR = MANUSCRIPT_DIR / "figures"
 
 sys.path.insert(0, str(SCRIPTS_DIR))
 from pipeline_api import OrientExoPipelineAPI
+from eeg_preproc_and_feats import VISUAL_INSPECT_REJ_1BASED
 
 # Included participants per AnalysisWrapper_OrientWheelExo_ML.m (N = 28)
 INCLUDED_PARTICIPANTS = [
@@ -46,7 +48,7 @@ def get_arr(val):
         val = val.item()
     return np.asarray(val).ravel()
 
-def load_behavior_data():
+def load_behavior_data(restrict_to_eeg_trials=True):
     n_subs = len(INCLUDED_PARTICIPANTS)
     # Shape: (n_subs, cue_type: [0=info, 1=noninfo], side: [0=left, 1=right])
     abs_err = np.zeros((n_subs, 2, 2))
@@ -63,16 +65,32 @@ def load_behavior_data():
         tg = prefs["targ_gray"]
         staircase_grays.append(float(tg.item() if hasattr(tg, "item") else tg))
 
-        # Remove first 20 practice trials
-        err = get_arr(data["errorDegrees"])[20:]
-        val = get_arr(data["valid"])[20:]
-        pos = get_arr(data["position"])[20:]
+        cpath = CACHE_DIR / f"{sub}_feats.npz"
+        if restrict_to_eeg_trials and cpath.exists():
+            c_npz = np.load(cpath)
+            # Note: data.errorDegrees in MATLAB is (Response - Target); negate to match (Target - Response) in main.tex & Fig 1B
+            err = -np.asarray(c_npz["err_deg"], dtype=np.float64)
+            val = np.asarray(c_npz["valid"], dtype=np.int32)
+            pos = np.asarray(c_npz["position"], dtype=np.int32)
+        else:
+            # Remove first 20 practice trials
+            err = -get_arr(data["errorDegrees"])[20:].astype(np.float64)
+            val = get_arr(data["valid"])[20:].astype(np.int32)
+            pos = get_arr(data["position"])[20:].astype(np.int32)
 
-        # Participant 009 recording error removal per getBEHdata_OrientWheel_Exo.m
-        if sub == "009":
-            err = err[:343]
-            val = val[:343]
-            pos = pos[:343]
+            # Participant 009 recording error removal per getBEHdata_OrientWheel_Exo.m
+            if sub == "009":
+                err = err[:343]
+                val = val[:343]
+                pos = pos[:343]
+
+            if restrict_to_eeg_trials:
+                vis_rej = VISUAL_INSPECT_REJ_1BASED.get(sub, [])
+                keep = np.ones(len(err), dtype=bool)
+                for idx_1b in vis_rej:
+                    if 1 <= idx_1b <= len(keep):
+                        keep[idx_1b - 1] = False
+                err, val, pos = err[keep], val[keep], pos[keep]
 
         # Info Left: val == 1, pos == 0
         resp_err[i, 0, 0] = np.mean(err[(val == 1) & (pos == 0)])
@@ -92,69 +110,94 @@ def load_behavior_data():
 
 def perm_rm_anova_2x2(data, n_perms=10000, seed=42):
     """
-    Computes 2x2 repeated measures ANOVA with permutation-based Fmax testing
-    matching `perm_rbANOVA_OrientExo.m`.
-    data: (N, 2, 2) where axis 1 is Cue (Info vs Non-info), axis 2 is Side (Left vs Right).
+    Computes 2x2 repeated measures ANOVA with exact FMUT permutation-based Fmax testing
+    matching `perm_rbANOVA_OrientExo.m` + `reduce_data_ModelFit.m` (Fields & Kuperberg, 2019).
+    Collapses to 1-way 2-level difference vectors for each main effect and the 2x2 interaction,
+    and performs within-subject sign-flipping (with permutation 0 = observed sample).
     """
     rng = np.random.RandomState(seed)
     N = data.shape[0]
 
-    def calc_F_stats(arr):
-        # Main effect Cue (axis 1)
-        diff_cue = np.mean(arr[:, 0, :] - arr[:, 1, :], axis=1)
-        s_cue = np.std(diff_cue, ddof=1)
-        t_cue = np.mean(diff_cue) / (s_cue / np.sqrt(N)) if s_cue > 0 else 0.0
-        F_cue = t_cue ** 2
+    diff_cue = np.mean(data[:, 0, :] - data[:, 1, :], axis=1)
+    diff_side = np.mean(data[:, :, 0] - data[:, :, 1], axis=1)
+    diff_int = (data[:, 0, 0] - data[:, 0, 1]) - (data[:, 1, 0] - data[:, 1, 1])
 
-        # Main effect Side (axis 2)
-        diff_side = np.mean(arr[:, :, 0] - arr[:, :, 1], axis=1)
-        s_side = np.std(diff_side, ddof=1)
-        t_side = np.mean(diff_side) / (s_side / np.sqrt(N)) if s_side > 0 else 0.0
-        F_side = t_side ** 2
-
-        # Interaction Cue x Side
-        diff_int = (arr[:, 0, 0] - arr[:, 0, 1]) - (arr[:, 1, 0] - arr[:, 1, 1])
-        s_int = np.std(diff_int, ddof=1)
-        t_int = np.mean(diff_int) / (s_int / np.sqrt(N)) if s_int > 0 else 0.0
-        F_int = t_int ** 2
-
-        return F_cue, F_side, F_int
-
-    F_cue_obs, F_side_obs, F_int_obs = calc_F_stats(data)
-
-    perm_F_cue = np.zeros(n_perms)
-    perm_F_side = np.zeros(n_perms)
-    perm_F_int = np.zeros(n_perms)
-
-    # Permutation testing: randomly flip condition assignments within subjects
-    for p in range(n_perms):
-        perm_data = data.copy()
-        for i in range(N):
-            # Randomly permute the 4 condition cells for subject i
-            flat = perm_data[i].ravel()
-            rng.shuffle(flat)
-            perm_data[i] = flat.reshape(2, 2)
-        fc, fs, fi = calc_F_stats(perm_data)
-        perm_F_cue[p] = fc
-        perm_F_side[p] = fs
-        perm_F_int[p] = fi
-
-    crit_cue = np.percentile(perm_F_cue, 95)
-    crit_side = np.percentile(perm_F_side, 95)
-    crit_int = np.percentile(perm_F_int, 95)
-
-    p_cue = np.mean(perm_F_cue >= F_cue_obs)
-    p_side = np.mean(perm_F_side >= F_side_obs)
-    p_int = np.mean(perm_F_int >= F_int_obs)
+    def run_1way_fmax(diff_vec, local_rng):
+        signs = local_rng.choice([-1.0, 1.0], size=(n_perms, N))
+        signs[0, :] = 1.0  # Permutation 0 is the observed data per FMUT
+        perm_diffs = signs * diff_vec[None, :]
+        means = np.mean(perm_diffs, axis=1)
+        stds = np.std(perm_diffs, ddof=1, axis=1)
+        t_vals = np.where(stds > 1e-15, means / (stds / np.sqrt(N)), 0.0)
+        F_dist = t_vals ** 2
+        F_obs = float(F_dist[0])
+        crit_F = float(np.percentile(F_dist, 95))
+        p_val = float(np.mean(F_dist >= F_obs))
+        return {
+            "fmax": round(F_obs, 2),
+            "crit_fmax": round(crit_F, 2),
+            "p": "< 0.001" if p_val < 0.001 else f"{p_val:.3f}",
+        }
 
     return {
-        "cue": {"fmax": round(float(F_cue_obs), 2), "crit_fmax": round(float(crit_cue), 2), "p": "< 0.001" if p_cue < 0.001 else f"{p_cue:.3f}"},
-        "side": {"fmax": round(float(F_side_obs), 2), "crit_fmax": round(float(crit_side), 2), "p": "< 0.001" if p_side < 0.001 else f"{p_side:.3f}"},
-        "int": {"fmax": round(float(F_int_obs), 2), "crit_fmax": round(float(crit_int), 2), "p": "< 0.001" if p_int < 0.001 else f"{p_int:.3f}"},
+        "cue": run_1way_fmax(diff_cue, np.random.RandomState(seed + 1)),
+        "side": run_1way_fmax(diff_side, np.random.RandomState(seed + 2)),
+        "int": run_1way_fmax(diff_int, np.random.RandomState(seed + 3)),
     }
 
 
-def plot_publication_figure2(abs_err, resp_err, staircase_grays, out_path):
+def pairwise_tmax_by_fdr(data, n_perms=10000, seed=42):
+    """
+    Executes two-tailed repeated-measures tmax permutation tests (Blair & Karniski, 1993;
+    mxt_perm1) across the 4 pairwise simple-effect comparisons and applies the
+    Benjamini & Yekutieli (2001) FDR correction at alpha = 0.05.
+    """
+    N = data.shape[0]
+    pairs = {
+        "left_info_vs_noninfo": data[:, 0, 0] - data[:, 1, 0],
+        "right_info_vs_noninfo": data[:, 0, 1] - data[:, 1, 1],
+        "info_left_vs_right": data[:, 0, 0] - data[:, 0, 1],
+        "noninfo_left_vs_right": data[:, 1, 0] - data[:, 1, 1],
+    }
+    raw_p = {}
+    t_obs_dict = {}
+    for idx, (k, dvec) in enumerate(pairs.items()):
+        rng = np.random.RandomState(seed + 100 + idx)
+        signs = rng.choice([-1.0, 1.0], size=(n_perms, N))
+        signs[0, :] = 1.0
+        p_diffs = signs * dvec[None, :]
+        m = np.mean(p_diffs, axis=1)
+        s = np.std(p_diffs, ddof=1, axis=1)
+        t_dist = np.where(s > 1e-15, m / (s / np.sqrt(N)), 0.0)
+        t_obs = float(t_dist[0])
+        t_obs_dict[k] = round(t_obs, 2)
+        raw_p[k] = float(np.mean(np.abs(t_dist) >= abs(t_obs)))
+
+    # Benjamini & Yekutieli (2001) step-up FDR adjustment across the m=4 pairwise tests
+    m_tests = len(pairs)
+    c_m = sum(1.0 / i for i in range(1, m_tests + 1))
+    sorted_keys = sorted(raw_p.keys(), key=lambda k: raw_p[k])
+    adj_p = {}
+    running_min = 1.0
+    for rank_rev in range(m_tests - 1, -1, -1):
+        k = sorted_keys[rank_rev]
+        rank = rank_rev + 1
+        val = min(1.0, raw_p[k] * m_tests * c_m / rank)
+        running_min = min(running_min, val)
+        adj_p[k] = round(float(running_min), 4)
+
+    out = {}
+    for k in pairs:
+        out[k] = {
+            "t": t_obs_dict[k],
+            "p_perm": round(raw_p[k], 4),
+            "p_by_fdr": adj_p[k],
+            "sig": bool(adj_p[k] < 0.05),
+        }
+    return out
+
+
+def plot_publication_figure2(abs_err, resp_err, staircase_grays, pairwise_abs, out_path):
     """
     Renders high-resolution publication-quality Figure 2.
     Clean scientific style conforming to Cereb Cortex and Reviewer 2.
@@ -199,16 +242,20 @@ def plot_publication_figure2(abs_err, resp_err, staircase_grays, out_path):
     ax_a.set_title("A. Absolute Orientation Error", fontweight="bold")
     ax_a.legend(frameon=False, loc="upper right")
 
-    # Add significance brackets (* for Left Target p < 0.05, ns for Right Target)
+    # Data-driven significance brackets from Benjamini-Yekutieli FDR-corrected pairwise tmax tests
+    lbl_l = "*" if pairwise_abs["left_info_vs_noninfo"]["sig"] else "ns"
+    fs_l = 13 if lbl_l == "*" else 9.5
     y_top_l = max(means_abs[0][0] + sems_abs[0][0], means_abs[0][1] + sems_abs[0][1]) + 2.2
     ax_a.plot([x[0] - width/2, x[0] - width/2, x[0] + width/2, x[0] + width/2],
               [y_top_l - 0.8, y_top_l, y_top_l, y_top_l - 0.8], color="black", linewidth=1.0)
-    ax_a.text(x[0], y_top_l + 0.4, "*", ha="center", va="bottom", fontsize=13, fontweight="bold")
+    ax_a.text(x[0], y_top_l + 0.4, lbl_l, ha="center", va="bottom", fontsize=fs_l, fontweight="bold")
 
+    lbl_r = "*" if pairwise_abs["right_info_vs_noninfo"]["sig"] else "ns"
+    fs_r = 13 if lbl_r == "*" else 9.5
     y_top_r = max(means_abs[1][0] + sems_abs[1][0], means_abs[1][1] + sems_abs[1][1]) + 2.2
     ax_a.plot([x[1] - width/2, x[1] - width/2, x[1] + width/2, x[1] + width/2],
               [y_top_r - 0.8, y_top_r, y_top_r, y_top_r - 0.8], color="black", linewidth=1.0)
-    ax_a.text(x[1], y_top_r + 0.5, "ns", ha="center", va="bottom", fontsize=9.5, fontweight="bold")
+    ax_a.text(x[1], y_top_r + 0.5, lbl_r, ha="center", va="bottom", fontsize=fs_r, fontweight="bold")
 
     # Panel B: Signed Response Error
     ax_b = axes[1]
@@ -249,17 +296,19 @@ def plot_publication_figure2(abs_err, resp_err, staircase_grays, out_path):
 
 
 def main():
-    print("[run_behavior_pipeline] Loading single-trial behavioral datasets for N=28...")
-    abs_err, resp_err, staircase_grays = load_behavior_data()
+    print("[run_behavior_pipeline] Loading EEG-artifact-rejected single-trial behavioral datasets for N=28...")
+    abs_err, resp_err, staircase_grays = load_behavior_data(restrict_to_eeg_trials=True)
 
-    print("[run_behavior_pipeline] Running permutation-based repeated measures ANOVA (10,000 perms)...")
+    print("[run_behavior_pipeline] Running FMUT permutation-based repeated measures ANOVA (10,000 perms)...")
     abs_anova = perm_rm_anova_2x2(abs_err, n_perms=10000)
     resp_anova = perm_rm_anova_2x2(resp_err, n_perms=10000)
+    pairwise_abs = pairwise_tmax_by_fdr(abs_err, n_perms=10000)
 
     print("Absolute Error ANOVA:")
     print("  Cue: ", abs_anova["cue"])
     print("  Side:", abs_anova["side"])
     print("  Int: ", abs_anova["int"])
+    print("  Pairwise tmax (BY-FDR):", pairwise_abs)
 
     print("Signed Error ANOVA:")
     print("  Cue: ", resp_anova["cue"])
@@ -267,18 +316,20 @@ def main():
     print("  Int: ", resp_anova["int"])
 
     fig2_path = FIGURES_DIR / "figure2_behavior.png"
-    plot_publication_figure2(abs_err, resp_err, staircase_grays, fig2_path)
+    plot_publication_figure2(abs_err, resp_err, staircase_grays, pairwise_abs, fig2_path)
+
+    right_floor = int(round(float(np.mean(abs_err[:, :, 1]))))
 
     # Push updates to pipeline API
     api = OrientExoPipelineAPI()
     update_payload = {
         "action": "update_stats",
-        "source_script": "CuedOrientTask_paper/Analysis_Code/perm_rbANOVA_OrientExo.m",
+        "source_script": "manuscript/scripts/run_behavior_pipeline.py",
         "updates": {
             "participants": {
                 "n_recruited": 35,
                 "n_excluded_eog": 7,
-                "n_included": 28
+                "n_included": len(INCLUDED_PARTICIPANTS)
             },
             "task": {
                 "staircase_gray_mean": round(float(np.mean(staircase_grays)), 1),
@@ -286,8 +337,9 @@ def main():
             },
             "behavior": {
                 "df1": 1,
-                "df2": 27,
-                "right_side_floor_deg": 28,
+                "df2": len(INCLUDED_PARTICIPANTS) - 1,
+                "right_side_floor_deg": right_floor,
+                "pairwise_abs_error": pairwise_abs,
                 "response_error": {
                     "target_side": {
                         "fmax": resp_anova["side"]["fmax"],

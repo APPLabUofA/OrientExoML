@@ -23,6 +23,10 @@ def generate_macros(data: dict) -> str:
     m = data["mvpa"]
     figs = data["figures"]
 
+    def fmt_p(p_str: str) -> str:
+        s = str(p_str).strip()
+        return s if s.startswith("<") or s.startswith("=") else f"= {s}"
+
     lines = [
         "% ==========================================================================",
         "% AUTO-GENERATED FILE — DO NOT EDIT MANUALLY",
@@ -62,20 +66,20 @@ def generate_macros(data: dict) -> str:
         f"\\newcommand{{\\statBehavDF}}{{{b['df1']},{b['df2']}}}",
         f"\\newcommand{{\\statRightSideFloorDeg}}{{{b['right_side_floor_deg']}^\\circ}}",
         f"\\newcommand{{\\statAbsErrSideFmax}}{{{b['absolute_response_error']['target_side']['fmax']:.2f}}}",
-        f"\\newcommand{{\\statAbsErrSideCrit}}{{\\pm {b['absolute_response_error']['target_side']['crit_fmax']:.2f}}}",
-        f"\\newcommand{{\\statAbsErrSideP}}{{{b['absolute_response_error']['target_side']['p']}}}",
+        f"\\newcommand{{\\statAbsErrSideCrit}}{{{b['absolute_response_error']['target_side']['crit_fmax']:.2f}}}",
+        f"\\newcommand{{\\statAbsErrSideP}}{{{fmt_p(b['absolute_response_error']['target_side']['p'])}}}",
         f"\\newcommand{{\\statAbsErrCueFmax}}{{{b['absolute_response_error']['cue_type']['fmax']:.2f}}}",
-        f"\\newcommand{{\\statAbsErrCueCrit}}{{\\pm {b['absolute_response_error']['cue_type']['crit_fmax']:.2f}}}",
-        f"\\newcommand{{\\statAbsErrCueP}}{{{b['absolute_response_error']['cue_type']['p']}}}",
+        f"\\newcommand{{\\statAbsErrCueCrit}}{{{b['absolute_response_error']['cue_type']['crit_fmax']:.2f}}}",
+        f"\\newcommand{{\\statAbsErrCueP}}{{{fmt_p(b['absolute_response_error']['cue_type']['p'])}}}",
         f"\\newcommand{{\\statAbsErrIntFmax}}{{{b['absolute_response_error']['interaction']['fmax']:.2f}}}",
-        f"\\newcommand{{\\statAbsErrIntCrit}}{{\\pm {b['absolute_response_error']['interaction']['crit_fmax']:.2f}}}",
-        f"\\newcommand{{\\statAbsErrIntP}}{{{b['absolute_response_error']['interaction']['p']}}}",
+        f"\\newcommand{{\\statAbsErrIntCrit}}{{{b['absolute_response_error']['interaction']['crit_fmax']:.2f}}}",
+        f"\\newcommand{{\\statAbsErrIntP}}{{{fmt_p(b['absolute_response_error']['interaction']['p'])}}}",
         f"\\newcommand{{\\statRelErrSideFmax}}{{{b['response_error']['target_side']['fmax']:.2f}}}",
-        f"\\newcommand{{\\statRelErrSideCrit}}{{\\pm {b['response_error']['target_side']['crit_fmax']:.2f}}}",
+        f"\\newcommand{{\\statRelErrSideCrit}}{{{b['response_error']['target_side']['crit_fmax']:.2f}}}",
         f"\\newcommand{{\\statRelErrSideP}}{{{b['response_error']['target_side']['p']}}}",
         f"\\newcommand{{\\statRelErrCueFmax}}{{{b['response_error']['cue_type']['fmax_str']}}}",
         f"\\newcommand{{\\statRelErrIntFmax}}{{{b['response_error']['interaction']['fmax']:.2f}}}",
-        f"\\newcommand{{\\statRelErrIntCrit}}{{\\pm {b['response_error']['interaction']['crit_fmax']:.2f}}}",
+        f"\\newcommand{{\\statRelErrIntCrit}}{{{b['response_error']['interaction']['crit_fmax']:.2f}}}",
         f"\\newcommand{{\\statRelErrIntP}}{{{b['response_error']['interaction']['p']}}}",
         "",
         "% --- FOOOF Spectral Parameterization Statistics ---",
@@ -86,10 +90,10 @@ def generate_macros(data: dict) -> str:
         f"\\newcommand{{\\statFOOOFMinHeight}}{{{f['min_peak_height']:.2f}}}",
         f"\\newcommand{{\\statFOOOFPeakThresh}}{{{f['peak_threshold']:.2f}}}",
         f"\\newcommand{{\\statFOOOFBonfAlpha}}{{{f['alpha_bonferroni']}}}",
-        f"\\newcommand{{\\statFOOOFOffsetCrit}}{{\\pm {f['offset_mean_crit_fmax']:.2f}}}",
-        f"\\newcommand{{\\statFOOOFExpCrit}}{{\\pm {f['exponent_mean_crit_fmax']:.2f}}}",
-        f"\\newcommand{{\\statFOOOFRsqCrit}}{{\\pm {f['r2_mean_crit_fmax']:.2f}}}",
-        f"\\newcommand{{\\statFOOOFErrCrit}}{{\\pm {f['error_mean_crit_fmax']:.2f}}}",
+        f"\\newcommand{{\\statFOOOFOffsetCrit}}{{{f['offset_mean_crit_fmax']:.2f}}}",
+        f"\\newcommand{{\\statFOOOFExpCrit}}{{{f['exponent_mean_crit_fmax']:.2f}}}",
+        f"\\newcommand{{\\statFOOOFRsqCrit}}{{{f['r2_mean_crit_fmax']:.2f}}}",
+        f"\\newcommand{{\\statFOOOFErrCrit}}{{{f['error_mean_crit_fmax']:.2f}}}",
         f"\\newcommand{{\\statIAFGrandMeanHz}}{{{f['iaf_grand_mean_hz']}\\,\\text{{Hz}}}}",
         f"\\newcommand{{\\statIAFGrandSDHz}}{{{f['iaf_grand_sd_hz']}\\,\\text{{Hz}}}}",
         f"\\newcommand{{\\statIAFRangeHz}}{{{f['iaf_range_hz']}\\,\\text{{Hz}}}}",
@@ -135,6 +139,8 @@ def generate_macros(data: dict) -> str:
         f"\\newcommand{{\\statSVMGLMRightWin}}{{{m['svm_results'].get('glm_right_sig_windows', '')}}}",
         f"\\newcommand{{\\statSVMwPLIPctSigRange}}{{{m['svm_results'].get('wpli_pct_sig_range', '')}}}",
         f"\\newcommand{{\\statSVMwPLIRightWin}}{{{m['svm_results'].get('wpli_right_sig_windows', '')}}}",
+        f"\\newcommand{{\\statSVMPLVPctSigRange}}{{{m['svm_results'].get('plv_pct_sig_range', '')}}}",
+        f"\\newcommand{{\\statSVMPLVLeftWin}}{{{m['svm_results'].get('plv_left_sig_windows', '')}}}",
         f"\\newcommand{{\\statSVRAlphaRightWin}}{{{m['svr_results'].get('alpha_noninf_right_sig_windows', '')}}}",
         f"\\newcommand{{\\statSVRAACRightWin}}{{{m['svr_results'].get('aac_noninf_right_sig_windows', '')}}}",
         f"\\newcommand{{\\statSVRMVLRightWin}}{{{m['svr_results'].get('mvl_noninf_right_sig_windows', '')}}}",

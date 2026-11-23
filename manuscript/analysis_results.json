@@ -2,7 +2,7 @@
   "metadata": {
     "manuscript_id": "CerCor-2022-00354",
     "journal": "Cerebral Cortex",
-    "title": "Connecting Covert Attention and Visual Perception to the Spatiotemporal Dynamics of Alpha Band Activity, Cross-Frequency Coupling (CFC), and Functional Connectivity using Multivariate Pattern Analysis (MVPA)",
+    "title": "Connecting Attention and Perception to Alpha Spatiotemporal Dynamics",
     "short_title": "CONNECT ATTENTION AND PERCEPTION TO SPATIOTEMPORAL DYNAMICS",
     "osf_url": "https://osf.io/u6fgm/",
     "task_repo_url": "https://github.com/APPLabUofA/CuedOrientTask_paper",
@@ -15,27 +15,27 @@
     "participants": {
       "status": "computed_from_raw_data",
       "source_script": "manuscript/scripts/run_behavior_pipeline.py",
-      "updated_at": "2026-11-23T08:00:31.229257+00:00"
+      "updated_at": "2026-11-23T16:52:52.242828+00:00"
     },
     "behavior": {
       "status": "computed_from_raw_data",
       "source_script": "manuscript/scripts/run_behavior_pipeline.py",
-      "updated_at": "2026-11-23T08:00:31.229257+00:00"
+      "updated_at": "2026-11-23T16:52:52.242828+00:00"
     },
     "fooof": {
       "status": "computed_from_raw_data",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "updated_at": "2026-11-23T08:33:31.001766+00:00"
+      "updated_at": "2026-11-23T16:52:54.930350+00:00"
     },
     "mvpa": {
       "status": "computed_from_raw_data",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "updated_at": "2026-11-23T08:33:33.904304+00:00"
+      "updated_at": "2026-11-23T16:52:57.663077+00:00"
     },
     "mvpa_summary_metrics": {
       "status": "computed_from_raw_data",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "updated_at": "2026-11-23T08:33:33.904304+00:00"
+      "updated_at": "2026-11-23T16:52:57.663077+00:00"
     }
   },
   "participants": {
@@ -492,45 +492,45 @@
       "file": "figures/figure2_behavior.png",
       "status": "generated_from_analysis",
       "source_script": "manuscript/scripts/run_behavior_pipeline.py",
-      "sha256": "f774b7db34b3d48bf28434fb94400d721bbf0e73e752996f4bda57eb4fbffa5c",
+      "sha256": "4dbf6d601c9bf1a959513ffa25ef4ae1f6538c31fa4aaf11f1d2f3ff529bf6c1",
       "description": "Empirical Figure 2 generated from N=28 single-trial behavioral datasets (OSF u6fgm)",
-      "updated_at": "2026-11-23T08:33:28.659926+00:00"
+      "updated_at": "2026-11-23T16:52:52.276006+00:00"
     },
     "figure3": {
       "id": "figure3",
       "file": "figures/figure3_svm_cfc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "f2dff47220b13e23fb5e592926e22ce6790a0250a17104e67e47ea7482c7a9d2",
+      "sha256": "e941a8ca54b9bbd09d5e74d1f60d9b2ba8956a616bf85e809c36837bd19802bf",
       "description": "Spatiotemporal SVM classification and feature weights for alpha amplitude and CFC measures",
-      "updated_at": "2026-11-23T08:33:31.788343+00:00"
+      "updated_at": "2026-11-23T16:52:55.773931+00:00"
     },
     "figure4": {
       "id": "figure4",
       "file": "figures/figure4_svm_fc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "90889a518c04396912c346e6a0a2d0de3c42ab865c43076f1a0c4a71b6186583",
+      "sha256": "a74bc5eefe63597314d382372577c1a25479fa24dce1f6805f26461aac75a070",
       "description": "Spatiotemporal SVM classification and feature weights for functional connectivity measures",
-      "updated_at": "2026-11-23T08:33:32.157540+00:00"
+      "updated_at": "2026-11-23T16:52:56.132800+00:00"
     },
     "figure5": {
       "id": "figure5",
       "file": "figures/figure5_svr_cfc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "0d69574f4978403123a3fbc2b8c80f1e1cb6c525a032c720f6856ba8e28aebeb",
+      "sha256": "6c6d808ace7292d80b38182cfdf434bfe8b3eb1d1209f49e62d4d22db7b3ae3e",
       "description": "Spatiotemporal SVR prediction and feature weights for alpha amplitude and CFC measures",
-      "updated_at": "2026-11-23T08:33:33.249816+00:00"
+      "updated_at": "2026-11-23T16:52:57.097530+00:00"
     },
     "figure6": {
       "id": "figure6",
       "file": "figures/figure6_svr_fc.png",
       "status": "generated_from_analysis",
       "source_script": "scripts/run_mvpa_and_figures.py",
-      "sha256": "8fb8b918cfb1f61a55cd741704ed93d4f8a413ca84572a9020a207f6430ae395",
+      "sha256": "af28f638805018aafb6965d8cb25c553b4e9663487b8295d4f298a52c903ae23",
       "description": "Spatiotemporal SVR prediction and feature weights for functional connectivity measures",
-      "updated_at": "2026-11-23T08:33:33.872319+00:00"
+      "updated_at": "2026-11-23T16:52:57.634048+00:00"
     },
     "figure7": {
       "id": "figure7",
@@ -539,7 +539,7 @@
       "source_script": "scripts/run_mvpa_and_figures.py",
       "sha256": "8756729b23d86024c50424d84ffe981adefaed53b9645affce8f1105f526d870",
       "description": "Summary comparison of MVPA classification and SVR prediction performance across all EEG metrics (Reviewer 2 request)",
-      "updated_at": "2026-11-23T08:33:34.245360+00:00"
+      "updated_at": "2026-11-23T16:52:57.973948+00:00"
     }
   }
 }

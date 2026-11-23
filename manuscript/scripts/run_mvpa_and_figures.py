@@ -5,7 +5,7 @@ run_mvpa_and_figures.py
 Complete, zero-hotwiring Python reconstruction of:
 1. FOOOF group-level F_max permutation statistics (fooof_OrientExo_ML.m)
 2. Spatiotemporal DDTBOX LIBSVM Support Vector Classification (SVM, C=1.0) and
-   Support Vector Regression (SVR, C=0.1, eps=0.1) across all 10 pre-stimulus
+   Support Vector Regression (SVR, C=0.1, eps=0.01) across all 10 pre-stimulus
    oscillatory metrics (Alpha Amplitude, AAC, MVL Ozkurt, MI Tort, PAC GLM,
    PAC PLV, wPLI, Amplitude Correlation, PLV, iCOH) with 10-fold x 10-repeat
    cross-validation, shuffled-label empirical chance baselines, Haufe et al. (2014)
@@ -184,7 +184,7 @@ def solve_csvc_smo(K: np.ndarray, y: np.ndarray, C: float = 1.0, tol: float = 1e
 
 @njit(fastmath=True)
 def solve_esvr_smo(K: np.ndarray, y_target: np.ndarray, C: float = 0.1, eps: float = 0.01, tol: float = 1e-3, max_iter: int = 2500):
-    """Fan et al. (2005) LIBSVM dual SMO solver for epsilon-SVR (-s 3 -t 0 -c 0.1 -p 0.1)."""
+    """Fan et al. (2005) LIBSVM dual SMO solver for epsilon-SVR (-s 3 -t 0 -c 0.1 -p 0.01)."""
     n = len(y_target)
     n2 = 2 * n
     alpha = np.zeros(n2, dtype=np.float64)
@@ -447,7 +447,7 @@ def ddtbox_svm_subject(X_c1: np.ndarray, X_c2: np.ndarray, seed: int = 42):
 @njit(parallel=True, fastmath=True)
 def ddtbox_svr_subject(X_c: np.ndarray, y_raw: np.ndarray, seed: int = 1337):
     """
-    Runs 10-fold x 10-repeat spatiotemporal epsilon-SVR regression (C=0.1, eps=0.1,
+    Runs 10-fold x 10-repeat spatiotemporal epsilon-SVR regression (C=0.1, eps=0.01,
     real + permuted labels, Fisher-z transformed Pearson r) and Haufe-corrected
     absolute feature weight extraction for one subject and condition.
     X_c: shape (n_steps, win_len, n_chan, n_trials)
@@ -938,9 +938,9 @@ def render_figure3_or_5(
         ("AAC", "AAC"),
         ("lowFreq_amp", "Alpha Amplitude"),
         ("PACtort", "MI"),
-        ("PACoz", "MVL_Özkurt"),
-        ("PACglm", "PAC_GLM"),
-        ("PACplv", "PAC_PLV"),
+        ("PACoz", "MVL$_{\\mathrm{\\ddot{O}zkurt}}$"),
+        ("PACglm", "PAC$_{\\mathrm{GLM}}$"),
+        ("PACplv", "PAC$_{\\mathrm{PLV}}$"),
     ]
     if is_svm:
         cols = [("L", "Left Targets"), ("R", "Right Targets")]
@@ -1006,8 +1006,24 @@ def render_figure3_or_5(
                 x1 = t_ms[run[-1]] + 0.3 * step_w
                 ax.axvspan(x0, x1, color="#55FF44", alpha=0.55, lw=0, zorder=1)
 
-            # Select up to 2 most prominent (longest, then highest peak) significant clusters for inset topographies
-            rep_runs = sorted(runs, key=lambda r: (len(r), float(np.max(mean_real[r]))), reverse=True)[:2]
+            # Select up to 2 well-separated prominent (longest, then highest peak) significant clusters for inset topographies
+            sorted_runs = sorted(runs, key=lambda r: (len(r), float(np.max(mean_real[r]))), reverse=True)
+            rep_runs = []
+            for cand in sorted_runs:
+                if not rep_runs:
+                    rep_runs.append(cand)
+                else:
+                    c0 = float(np.mean(t_ms[rep_runs[0]]))
+                    c1 = float(np.mean(t_ms[cand]))
+                    if abs(c1 - c0) >= 220.0:
+                        rep_runs.append(cand)
+                        break
+            if len(rep_runs) == 1 and len(sorted_runs) >= 2:
+                # Fallback if all clusters are within 220 ms: only add second if >= 120 ms apart
+                for cand in sorted_runs[1:]:
+                    if abs(float(np.mean(t_ms[cand])) - float(np.mean(t_ms[rep_runs[0]]))) >= 120.0:
+                        rep_runs.append(cand)
+                        break
             rep_runs.sort(key=lambda r: int(r[0]))
             norm_xs = []
             for r in rep_runs:
@@ -1029,7 +1045,7 @@ def render_figure3_or_5(
                 )
                 t0_lbl = int(round(float(t_ms[run[0]])))
                 t1_lbl = int(round(float(t_ms[run[-1]])))
-                win_lbl = f"{t0_lbl} ms" if t0_lbl == t1_lbl else f"{t0_lbl}..{t1_lbl} ms"
+                win_lbl = f"{t0_lbl} ms" if t0_lbl == t1_lbl else f"{t0_lbl} to {t1_lbl} ms"
                 ax.text(
                     norm_x, 0.94, win_lbl,
                     transform=ax.transAxes, fontsize=5.8, fontweight="bold",
@@ -1049,7 +1065,7 @@ def render_figure3_or_5(
                 t_ms, mean_real, yerr=se_real,
                 color="black", linestyle="-", linewidth=1.0,
                 marker="s", markersize=2.3, elinewidth=0.55, capsize=1.2, zorder=3,
-                label="Empirical accuracy" if (is_svm and r_idx == 0 and c_idx == n_cols - 1) else ("Empirical SVR r_z" if (not is_svm and r_idx == 0 and c_idx == n_cols - 1) else None),
+                label="Empirical accuracy" if (is_svm and r_idx == 0 and c_idx == n_cols - 1) else ("Empirical SVR $r_z$" if (not is_svm and r_idx == 0 and c_idx == n_cols - 1) else None),
             )
             if r_idx == 0 and c_idx == n_cols - 1:
                 ax.legend(loc="lower right", frameon=True, facecolor="white", framealpha=0.85, edgecolor="none", fontsize=6.8)
@@ -1102,7 +1118,7 @@ def render_figure3_or_5(
     # Shared Y-axis label for Panel A
     fig.text(
         0.020, 0.675,
-        "Classification Accuracy [%]" if is_svm else "Fisher-transformed correlation coeff",
+        "Accuracy (%)" if is_svm else "Fisher-Z Correlation ($r_z$)",
         fontsize=10.5, fontweight="bold", rotation=90, va="center", ha="center",
     )
 
@@ -1212,7 +1228,7 @@ def render_figure4_or_6(
                 t1_f = float(t_ms[run[-1]])
                 s0 = f"{t0_f:.1f}" if t0_f != int(t0_f) else f"{int(t0_f)}"
                 s1 = f"{t1_f:.1f}" if t1_f != int(t1_f) else f"{int(t1_f)}"
-                win_lbl = f"{s0} ms" if s0 == s1 else f"{s0}..{s1} ms"
+                win_lbl = f"{s0} ms" if s0 == s1 else f"{s0} to {s1} ms"
                 ax.text(
                     norm_x, 0.94, win_lbl,
                     transform=ax.transAxes, fontsize=5.8, fontweight="bold",
@@ -1231,7 +1247,7 @@ def render_figure4_or_6(
                 t_ms, mean_real, yerr=se_real,
                 color="black", linestyle="-", linewidth=1.05,
                 marker="s", markersize=2.7, elinewidth=0.6, capsize=1.4, zorder=3,
-                label="Empirical accuracy" if (is_svm and r_idx == 0 and c_idx == n_cols - 1) else ("Empirical SVR r_z" if (not is_svm and r_idx == 0 and c_idx == n_cols - 1) else None),
+                label="Empirical accuracy" if (is_svm and r_idx == 0 and c_idx == n_cols - 1) else ("Empirical SVR $r_z$" if (not is_svm and r_idx == 0 and c_idx == n_cols - 1) else None),
             )
             if r_idx == 0 and c_idx == n_cols - 1:
                 ax.legend(loc="lower right", frameon=True, facecolor="white", framealpha=0.85, edgecolor="none", fontsize=6.8)
@@ -1282,7 +1298,7 @@ def render_figure4_or_6(
 
     fig.text(
         0.020, 0.68,
-        "Classification Accuracy [%]" if is_svm else "Fisher-transformed correlation coeff",
+        "Accuracy (%)" if is_svm else "Fisher-Z Correlation ($r_z$)",
         fontsize=10.5, fontweight="bold", rotation=90, va="center", ha="center",
     )
 

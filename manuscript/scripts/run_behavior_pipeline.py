@@ -283,10 +283,11 @@ def plot_publication_figure2(abs_err, resp_err, staircase_grays, pairwise_abs, o
     ax_c.hist(staircase_grays, bins=10, color="#41b6c4", edgecolor="black", linewidth=0.8)
     ax_c.axvline(np.mean(staircase_grays), color="#d95f0e", linestyle="--", linewidth=1.5,
                 label=f"Mean: {np.mean(staircase_grays):.1f}")
+    ax_c.set_ylim(0, 7.8)
     ax_c.set_xlabel("Target Luminance (8-bit Gray)")
     ax_c.set_ylabel("Participant Count")
     ax_c.set_title("C. Staircase Threshold", fontweight="bold")
-    ax_c.legend(frameon=False, loc="upper right")
+    ax_c.legend(frameon=False, loc="upper left")
 
     fig.tight_layout()
     fig.savefig(out_path, dpi=300, bbox_inches="tight")
